@@ -4,10 +4,10 @@ use git2::{Repository, Oid, ObjectType, FileMode};
 
 use crate::{Database, Result, RealBlob, BulkTreeEntryName, bail, ensure};
 
-impl<'a> Database<'a> {
-    pub fn traverser<T: TraversalCallbacks>(&self, callbacks: &'a mut T) -> Traverser<'a, T> {
+impl Database {
+    pub fn traverser<'a, T: TraversalCallbacks>(&'a self, callbacks: &'a mut T) -> Traverser<'a, T> {
         Traverser {
-            repo: self.repo,
+            repository: &self.repository(),
             callbacks,
             empty_blob_oid: None,
         }
@@ -106,7 +106,7 @@ impl<T: TraversalCallbacks> TraversalCallbacks for OnUnique<T> {
 }
 
 pub struct Visit<'a, T> {
-    repo: &'a Repository,
+    repository: &'a Repository,
     path: &'a Location,
     oid: Oid,
     extra: T,
@@ -140,14 +140,14 @@ impl<'a> Visit<'a, VisitBlob> {
     }
 
     pub fn read_blob(&self) -> Result<RealBlob> {
-        let blob = self.repo.find_blob(self.oid)?;
+        let blob = self.repository.find_blob(self.oid)?;
         Ok(RealBlob::from_shadow_file_content(blob.content())?)
     }
 }
 
 impl<'a> Visit<'a, VisitLink> {
     pub fn read_link(&self) -> Result<Vec<u8>> {
-        let blob = self.repo.find_blob(self.oid)?;
+        let blob = self.repository.find_blob(self.oid)?;
         Ok(blob.content().to_vec())
     }
 }
@@ -182,7 +182,7 @@ impl Location {
 }
 
 pub struct Traverser<'a, T> {
-    repo: &'a Repository,
+    repository: &'a Repository,
     callbacks: &'a mut T,
     empty_blob_oid: Option<Oid>,
 }
@@ -192,7 +192,7 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
         if let Some(expected_oid) = self.empty_blob_oid {
             ensure!(oid == expected_oid);
         } else {
-            let blob = self.repo.find_blob(oid)?;
+            let blob = self.repository.find_blob(oid)?;
             ensure!(blob.size() == 0);
         }
         Ok(())
@@ -204,15 +204,15 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
     
     pub fn traverse_from(&mut self, path: &mut Location, tree: Oid) -> Result<()> {
         if let VisitTreeDecision::Skip = self.callbacks.on_tree(&Visit {
-            repo: self.repo,
-            oid: tree,
+            repository: self.repository,
             path: &path,
+            oid: tree,
             extra: VisitTree,
         })? {
             return Ok(());
         }
 
-        let tree = self.repo.find_tree(tree)?;
+        let tree = self.repository.find_tree(tree)?;
 
         let mut first = true;
         for entry in tree.iter() {
@@ -236,9 +236,9 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
                 ObjectType::Blob => {
                     if mode == FileMode::Link.into() {
                         self.callbacks.on_link(&Visit {
-                            repo: self.repo,
-                            oid,
+                            repository: self.repository,
                             path: &path,
+                            oid,
                             extra: VisitLink,
                         })?;
                     } else {
@@ -250,9 +250,9 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
                             bail!("")
                         };
                         self.callbacks.on_blob(&Visit {
-                            repo: self.repo,
-                            oid,
+                            repository: self.repository,
                             path: &path,
+                            oid,
                             extra: VisitBlob { executable },
                         })?;
                     }

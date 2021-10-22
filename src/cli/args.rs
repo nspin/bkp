@@ -35,6 +35,10 @@ pub enum Command {
     PlantSnapshot {
         snapshot: PathBuf,
     },
+    TakeSnapshot {
+        subject: PathBuf,
+        out: PathBuf,
+    },
 }
 
 fn app<'a, 'b>() -> App<'a, 'b> {
@@ -62,6 +66,7 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .long("ro")
                 .help("Constrains execution to read-only operations."),
         )
+
         .subcommand(SubCommand::with_name("check").arg(
             Arg::with_name("TREE").default_value("HEAD").index(1))
         )
@@ -76,6 +81,14 @@ fn app<'a, 'b>() -> App<'a, 'b> {
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
                 .arg(Arg::with_name("TREE").default_value("HEAD").index(2)),
+        )
+
+        // internal
+
+        .subcommand(
+            SubCommand::with_name("take-snapshot")
+                .arg(Arg::with_name("SUBJECT").required(true).index(1))
+                .arg(Arg::with_name("OUT").required(true).index(2)),
         )
 }
 
@@ -131,6 +144,14 @@ impl Args {
             ensure_git_dir()?;
             Command::PlantSnapshot {
                 snapshot: matches.value_of("SNAPSHOT").unwrap().parse()?,
+            }
+
+        // internal
+
+        } else if let Some(matches) = matches.subcommand_matches("take-snapshot") {
+            Command::TakeSnapshot {
+                subject: matches.value_of("SUBJECT").unwrap().parse()?,
+                out: matches.value_of("OUT").unwrap().parse()?,
             }
         } else {
             panic!()

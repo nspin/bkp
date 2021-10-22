@@ -44,7 +44,7 @@ enum InodeEntry {
 }
 
 pub struct DatabaseFilesystem<'a, T> {
-    repo: &'a Repository,
+    repository: &'a Repository,
     inodes: BTreeMap<Inode, InodeEntry>,
     family_tree: BTreeMap<(Inode, usize), Inode>,
     next_inode: Inode,
@@ -53,9 +53,9 @@ pub struct DatabaseFilesystem<'a, T> {
 }
 
 impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
-    pub fn new(repo: &'a Repository, tree: Oid, blob_store: T) -> Self {
+    pub fn new(repository: &'a Repository, tree: Oid, blob_store: T) -> Self {
         Self {
-            repo,
+            repository,
             inodes: BTreeMap::from_iter([(
                 ROOT_INODE,
                 InodeEntry::Tree {
@@ -107,7 +107,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
             InodeEntry::File { oid, executable } => {
                 let kind = FileType::RegularFile;
                 let perm = 0o555 | (if *executable { 0o000 } else { 0o111 });
-                let blob = self.repo.find_blob(oid.clone())?;
+                let blob = self.repository.find_blob(oid.clone())?;
                 let blob = RealBlob::from_shadow_file_content(blob.content())?;
                 let blob_path = self.blob_store.blob_path(&blob);
                 let size = blob_path.metadata()?.len();
@@ -116,7 +116,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
             InodeEntry::Link { oid } => {
                 let kind = FileType::Symlink;
                 let perm = 0o555;
-                let blob = self.repo.find_blob(oid.clone())?;
+                let blob = self.repository.find_blob(oid.clone())?;
                 let size = blob.size().try_into().unwrap();
                 (kind, perm, size)
             }
@@ -154,7 +154,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
             InodeEntry::File { oid, .. } => oid,
             _ => bail!(""),
         };
-        let blob = self.repo.find_blob(oid.clone())?;
+        let blob = self.repository.find_blob(oid.clone())?;
         let blob = RealBlob::from_shadow_file_content(blob.content())?;
         let blob_path = self.blob_store.blob_path(&blob);
         let file = OpenOptions::new().read(true).open(blob_path)?;
@@ -179,7 +179,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
                 _ => Err(format_err!("")),
             }
         );
-        let tree = self.repo.find_tree(oid.clone()).unwrap();
+        let tree = self.repository.find_tree(oid.clone()).unwrap();
         let entry_name = BulkTreeEntryName::Child(name.to_str().unwrap()).encode();
         for (i, entry) in tree.iter().enumerate() {
             if entry.name().unwrap() == entry_name {
@@ -218,7 +218,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             Ok(Some((ino, FileType::Directory, ".".into()))),
             Ok(Some((parent, FileType::Directory, "..".into()))),
         ];
-        let tree = self.repo.clone().find_tree(oid).unwrap();
+        let tree = self.repository.clone().find_tree(oid).unwrap();
         let entries = always
             .into_iter()
             .chain(tree.iter().enumerate().map(|(i, entry)| {
@@ -266,7 +266,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
                 _ => Err(format_err!("")),
             }
         );
-        let blob = self.repo.find_blob(oid.clone()).unwrap();
+        let blob = self.repository.find_blob(oid.clone()).unwrap();
         let target = blob.content();
         reply.data(target);
     }

@@ -10,7 +10,7 @@ use crate::{
     BulkTreeEntryName,
 };
 
-impl<'a> Database<'a> {
+impl Database {
     pub fn plant_snapshot(&self, snapshot: &Snapshot) -> Result<(FileMode, Oid)> {
         let mut entries = snapshot.entries()?.buffered();
         let entry = entries.consume()?.unwrap();
@@ -21,7 +21,7 @@ impl<'a> Database<'a> {
     }
 
     fn empty_blob_oid(&self) -> Result<Oid> {
-        let writer = self.repo.blob_writer(None)?;
+        let writer = self.repository().blob_writer(None)?;
         Ok(writer.commit()?)
     }
 
@@ -40,7 +40,7 @@ impl<'a> Database<'a> {
                 };
                 let mut content = digest.to_hex().as_bytes().to_vec();
                 content.push(b'\n');
-                let mut writer = self.repo.blob_writer(None)?;
+                let mut writer = self.repository().blob_writer(None)?;
                 writer.write_all(&content)?;
                 let oid = writer.commit()?;
                 (mode, oid)
@@ -48,14 +48,14 @@ impl<'a> Database<'a> {
             SnapshotEntryValue::Link { target } => {
                 let mode = FileMode::Link;
                 let content = target.as_os_str().as_bytes();
-                let mut writer = self.repo.blob_writer(None)?;
+                let mut writer = self.repository().blob_writer(None)?;
                 writer.write_all(content)?;
                 let oid = writer.commit()?;
                 (mode, oid)
             }
             SnapshotEntryValue::Tree => {
                 let mode = FileMode::Tree;
-                let mut builder = self.repo.treebuilder(None)?;
+                let mut builder = self.repository().treebuilder(None)?;
                 builder.insert(
                     BulkTreeEntryName::Marker.encode(),
                     empty_blob_oid,

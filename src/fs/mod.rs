@@ -10,7 +10,7 @@ mod fs;
 
 const FS_NAME: &str = "st";
 
-impl<'a> Database<'a> {
+impl Database {
     pub fn mount(
         &self,
         tree: Oid,
@@ -29,7 +29,7 @@ impl<'a> Database<'a> {
             // MountOption::AutoUnmount,
             MountOption::CUSTOM("auto_unmount".to_string()),
         ];
-        let fs = DatabaseFilesystem::new(self.repo, tree, blob_store);
+        let fs = DatabaseFilesystem::new(self.repository(), tree, blob_store);
         fuser::mount2(fs, mountpoint, options)?;
         Ok(())
     }

@@ -1,3 +1,5 @@
+#![feature(exit_status_error)]
+
 pub use error::{Result, LameError};
 pub use entry::BulkTreeEntryName;
 pub use blob::RealBlob;

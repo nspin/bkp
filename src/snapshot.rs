@@ -2,11 +2,14 @@ use std::{
     fs, io, mem, str,
     path::{Path, PathBuf},
     ffi::OsStr,
+    process::Command,
     os::unix::ffi::OsStrExt,
 };
 use regex::bytes::Regex;
 use lazy_static::lazy_static;
 use crate::{Result, RealBlob};
+
+const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
 
 pub struct Snapshot {
     path: PathBuf,
@@ -36,6 +39,20 @@ impl Snapshot {
                 reader: io::BufReader::new(fs::File::open(self.digests_path())?),
             },
         })
+    }
+
+    pub fn take(&self, subject: &Path) -> Result<()> {
+        Command::new("bash")
+            .arg("-c")
+            .arg(OsStr::from_bytes(TAKE_SNAPSHOT_SCRIPT))
+            .arg("--")
+            .arg(subject)
+            .arg(&self.path)
+            .status()
+            .unwrap()
+            .exit_ok()
+            .unwrap();
+        Ok(())
     }
 }
 

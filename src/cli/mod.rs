@@ -17,6 +17,14 @@ pub fn cli_main() -> Result<()> {
     Ok(())
 }
 
+// impl Args {
+//     fn database(&self) -> Result<Database> {
+//         let git_dir = self.git_dir.unwrap();
+//         let git_dir = git2::Repository::open_bare(git_dir)?;
+//         Database::new(git_dir);
+//     }
+// }
+
 pub fn run(args: Args) -> Result<()> {
     let Args {
         git_dir,
@@ -41,14 +49,14 @@ pub fn run(args: Args) -> Result<()> {
         Command::Check { tree } => {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(&git_dir);
+            let db = Database::new(git_dir);
             let tree = Oid::from_str(&tree)?;
             db.check(tree)?;
         }
         Command::UniqueBlobs { tree } => {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(&git_dir);
+            let db = Database::new(git_dir);
             let tree = Oid::from_str(&tree)?;
             db.unique_blobs(tree, |path, blob| {
                 println!("{} {}", blob, path.join().display());
@@ -58,7 +66,7 @@ pub fn run(args: Args) -> Result<()> {
         Command::Mount { mountpoint, tree } => {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(&git_dir);
+            let db = Database::new(git_dir);
             let blob_store = blob_store.unwrap();
             let blob_store = MockRealBlobStorage::new(blob_store);
             let tree = Oid::from_str(&tree)?;
@@ -67,10 +75,14 @@ pub fn run(args: Args) -> Result<()> {
         Command::PlantSnapshot { snapshot } => {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(&git_dir);
+            let db = Database::new(git_dir);
             let snapshot = Snapshot::new(snapshot);
             let (mode, oid) = db.plant_snapshot(&snapshot)?;
             println!("{:06o},{}", u32::from(mode), oid)
+        }
+        Command::TakeSnapshot { subject, out } => {
+            let snapshot = Snapshot::new(out);
+            snapshot.take(&subject)?;
         }
     }
 
