@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-set -eu
-
-# suitable for local use
-export BULK_LIBEXECDIR="$(dirname "$0")/../libexec/bulk"
-
-exec "$BULK_LIBEXECDIR/bulk" "$@"
