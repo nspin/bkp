@@ -1,4 +1,4 @@
-use git2::Oid;
+use git2::{Repository, Oid};
 use crate::{Result, Database, MockRealBlobStorage, Snapshot};
 
 mod args;
@@ -48,34 +48,30 @@ pub fn run(args: Args) -> Result<()> {
     match command {
         Command::Check { tree } => {
             let git_dir = git_dir.unwrap();
-            let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(git_dir);
-            let tree = Oid::from_str(&tree)?;
+            let db = Database::new(Repository::open_bare(git_dir)?);
+            let tree = db.resolve_treeish(&tree)?;
             db.check(tree)?;
+        }
+        Command::Mount { mountpoint, tree } => {
+            let git_dir = git_dir.unwrap();
+            let db = Database::new(Repository::open_bare(git_dir)?);
+            let blob_store = blob_store.unwrap();
+            let blob_store = MockRealBlobStorage::new(blob_store);
+            let tree = db.resolve_treeish(&tree)?;
+            db.mount(tree, &mountpoint, blob_store)?;
         }
         Command::UniqueBlobs { tree } => {
             let git_dir = git_dir.unwrap();
-            let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(git_dir);
-            let tree = Oid::from_str(&tree)?;
+            let db = Database::new(Repository::open_bare(git_dir)?);
+            let tree = db.resolve_treeish(&tree)?;
             db.unique_blobs(tree, |path, blob| {
                 println!("{} {}", blob, path.join().display());
                 Ok(())
             })?;
         }
-        Command::Mount { mountpoint, tree } => {
-            let git_dir = git_dir.unwrap();
-            let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(git_dir);
-            let blob_store = blob_store.unwrap();
-            let blob_store = MockRealBlobStorage::new(blob_store);
-            let tree = Oid::from_str(&tree)?;
-            db.mount(tree, &mountpoint, blob_store)?;
-        }
         Command::PlantSnapshot { snapshot } => {
             let git_dir = git_dir.unwrap();
-            let git_dir = git2::Repository::open_bare(git_dir)?;
-            let db = Database::new(git_dir);
+            let db = Database::new(Repository::open_bare(git_dir)?);
             let snapshot = Snapshot::new(snapshot);
             let (mode, oid) = db.plant_snapshot(&snapshot)?;
             println!("{:06o},{}", u32::from(mode), oid)
@@ -83,6 +79,14 @@ pub fn run(args: Args) -> Result<()> {
         Command::TakeSnapshot { subject, out } => {
             let snapshot = Snapshot::new(out);
             snapshot.take(&subject)?;
+        }
+        Command::StoreSnapshot { tree, subject } => {
+            let git_dir = git_dir.unwrap();
+            let blob_store = blob_store.unwrap();
+            let db = Database::new(Repository::open_bare(git_dir)?);
+            let blob_store = MockRealBlobStorage::new(blob_store);
+            let tree = db.resolve_treeish(&tree)?;
+            db.store_snapshot(&blob_store, tree, &subject)?;
         }
     }
 

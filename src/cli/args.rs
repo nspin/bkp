@@ -25,19 +25,24 @@ pub enum Command {
     Check {
         tree: String,
     },
-    UniqueBlobs {
-        tree: String,
-    },
     Mount {
         mountpoint: PathBuf,
         tree: String,
     },
-    PlantSnapshot {
-        snapshot: PathBuf,
+
+    UniqueBlobs {
+        tree: String,
     },
     TakeSnapshot {
         subject: PathBuf,
         out: PathBuf,
+    },
+    PlantSnapshot {
+        snapshot: PathBuf,
+    },
+    StoreSnapshot {
+        tree: String,
+        subject: PathBuf,
     },
 }
 
@@ -70,13 +75,8 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(SubCommand::with_name("check").arg(
             Arg::with_name("TREE").default_value("HEAD").index(1))
         )
-        .subcommand(SubCommand::with_name("unique-blobs").arg(
-            Arg::with_name("TREE").default_value("HEAD").index(1))
-        )
-        .subcommand(
-            SubCommand::with_name("plant-snapshot")
-                .arg(Arg::with_name("SNAPSHOT").required(true).index(1)),
-        )
+
+
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
@@ -85,10 +85,22 @@ fn app<'a, 'b>() -> App<'a, 'b> {
 
         // internal
 
+        .subcommand(SubCommand::with_name("unique-blobs").arg(
+            Arg::with_name("TREE").default_value("HEAD").index(1))
+        )
         .subcommand(
             SubCommand::with_name("take-snapshot")
                 .arg(Arg::with_name("SUBJECT").required(true).index(1))
                 .arg(Arg::with_name("OUT").required(true).index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("plant-snapshot")
+                .arg(Arg::with_name("SNAPSHOT").required(true).index(1)),
+        )
+        .subcommand(
+            SubCommand::with_name("store-snapshot")
+                .arg(Arg::with_name("TREE").required(true).index(1))
+                .arg(Arg::with_name("SUBJECT").required(true).index(2)),
         )
 }
 
@@ -124,38 +136,42 @@ impl Args {
             Ok(())
         };
 
-        let command = if let Some(_matches) = matches.subcommand_matches("check") {
+        let command = if let Some(submatches) = matches.subcommand_matches("check") {
             ensure_git_dir()?;
             Command::Check {
-                tree: matches.value_of("TREE").unwrap().to_string(),
+                tree: submatches.value_of("TREE").unwrap().to_string(),
             }
-        } else if let Some(_matches) = matches.subcommand_matches("unique-blobs") {
-            ensure_git_dir()?;
-            Command::UniqueBlobs {
-                tree: matches.value_of("TREE").unwrap().to_string(),
-            }
-        } else if let Some(matches) = matches.subcommand_matches("mount") {
+        } else if let Some(submatches) = matches.subcommand_matches("mount") {
             ensure_git_dir()?;
             Command::Mount {
-                mountpoint: matches.value_of("MOUNTPOINT").unwrap().parse()?,
-                tree: matches.value_of("TREE").unwrap().to_string(),
+                mountpoint: submatches.value_of("MOUNTPOINT").unwrap().parse()?,
+                tree: submatches.value_of("TREE").unwrap().to_string(),
             }
-        } else if let Some(matches) = matches.subcommand_matches("snapshot") {
+        } else if let Some(submatches) = matches.subcommand_matches("unique-blobs") {
+            ensure_git_dir()?;
+            Command::UniqueBlobs {
+                tree: submatches.value_of("TREE").unwrap().to_string(),
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("take-snapshot") {
+            Command::TakeSnapshot {
+                subject: submatches.value_of("SUBJECT").unwrap().parse()?,
+                out: submatches.value_of("OUT").unwrap().parse()?,
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("plant-snapshot") {
             ensure_git_dir()?;
             Command::PlantSnapshot {
-                snapshot: matches.value_of("SNAPSHOT").unwrap().parse()?,
+                snapshot: submatches.value_of("SNAPSHOT").unwrap().parse()?,
             }
-
-        // internal
-
-        } else if let Some(matches) = matches.subcommand_matches("take-snapshot") {
-            Command::TakeSnapshot {
-                subject: matches.value_of("SUBJECT").unwrap().parse()?,
-                out: matches.value_of("OUT").unwrap().parse()?,
+        } else if let Some(submatches) = matches.subcommand_matches("store-snapshot") {
+            ensure_git_dir()?;
+            Command::StoreSnapshot {
+                tree: submatches.value_of("TREE").unwrap().parse()?,
+                subject: submatches.value_of("SUBJECT").unwrap().parse()?,
             }
         } else {
             panic!()
         };
+
         Ok(Args {
             git_dir,
             blob_store,

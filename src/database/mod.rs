@@ -1,4 +1,4 @@
-use git2::{Repository, Oid};
+use git2::{Repository, Oid, ObjectType};
 
 use crate::{Result};
 
@@ -20,8 +20,8 @@ impl Database {
         &self.repository
     }
 
-    // for debugging
-    pub fn head(&self) -> Result<Oid> {
-        Ok(self.repository().head()?.peel_to_commit()?.tree_id())
+    pub fn resolve_treeish(&self, treeish: &str) -> Result<Oid> {
+        // TODO validate treeish?
+        Ok(self.repository().revparse_single(treeish)?.peel_to_tree()?.id())
     }
 }

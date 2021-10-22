@@ -1,5 +1,5 @@
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     io::{self, Write},
     os::unix::ffi::OsStrExt,
 };
@@ -8,6 +8,7 @@ use git2::{Oid, FileMode};
 use crate::{
     Database, Result, Snapshot, SnapshotEntry, SnapshotEntryValue, BufferedSnapshotEntries,
     BulkTreeEntryName,
+    RealBlobStorage,
 };
 
 impl Database {
@@ -79,5 +80,9 @@ impl Database {
                 (mode, oid)
             }
         })
+    }
+
+    pub fn store_snapshot(&self, blob_store: &impl RealBlobStorage, tree: Oid, subject: &Path) -> Result<()> {
+        todo!()
     }
 }
