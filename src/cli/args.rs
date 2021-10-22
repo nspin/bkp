@@ -3,6 +3,7 @@ use std::{
     ffi::OsString,
     path::{Path, PathBuf},
     string::ToString,
+    error::Error,
 };
 use clap::{App, ArgMatches, Arg, SubCommand};
 use crate::{Result};
@@ -22,14 +23,14 @@ pub struct Args {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Check {
-        tree: Option<String>,
+        tree: String,
     },
     UniqueBlobs {
-        tree: Option<String>,
+        tree: String,
     },
     Mount {
         mountpoint: PathBuf,
-        tree: Option<String>,
+        tree: String,
     },
     PlantSnapshot {
         snapshot: PathBuf,
@@ -61,8 +62,12 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .long("ro")
                 .help("Constrains execution to read-only operations."),
         )
-        .subcommand(SubCommand::with_name("check").arg(Arg::with_name("TREE").index(1)))
-        .subcommand(SubCommand::with_name("unique-blobs").arg(Arg::with_name("TREE").index(1)))
+        .subcommand(SubCommand::with_name("check").arg(
+            Arg::with_name("TREE").default_value("HEAD").index(1))
+        )
+        .subcommand(SubCommand::with_name("unique-blobs").arg(
+            Arg::with_name("TREE").default_value("HEAD").index(1))
+        )
         .subcommand(
             SubCommand::with_name("plant-snapshot")
                 .arg(Arg::with_name("SNAPSHOT").required(true).index(1)),
@@ -70,7 +75,7 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
-                .arg(Arg::with_name("TREE").index(2)),
+                .arg(Arg::with_name("TREE").default_value("HEAD").index(2)),
         )
 }
 
@@ -94,33 +99,39 @@ impl Args {
         let read_only = matches.is_present("read-only");
         let verbosity = matches.occurrences_of("v");
 
-        let missing_git_dir = || Err("missing '--git-dir'".into());
+        let ensure_git_dir = || if git_dir.is_none() {
+            Err(Box::<dyn Error>::from("missing '--git-dir'"))
+        } else {
+            Ok(())
+        };
+
+        let ensure_blob_store = || if blob_store.is_none() {
+            Err(Box::<dyn Error>::from("missing '--git-dir'"))
+        } else {
+            Ok(())
+        };
 
         let command = if let Some(_matches) = matches.subcommand_matches("check") {
-            if git_dir.is_none() {
-                return missing_git_dir();
+            ensure_git_dir()?;
+            Command::Check {
+                tree: matches.value_of("TREE").unwrap().to_string(),
             }
-            let tree = matches.value_of("TREE").map(ToString::to_string);
-            Command::Check { tree }
         } else if let Some(_matches) = matches.subcommand_matches("unique-blobs") {
-            if git_dir.is_none() {
-                return missing_git_dir();
+            ensure_git_dir()?;
+            Command::UniqueBlobs {
+                tree: matches.value_of("TREE").unwrap().to_string(),
             }
-            let tree = matches.value_of("TREE").map(ToString::to_string);
-            Command::UniqueBlobs { tree }
         } else if let Some(matches) = matches.subcommand_matches("mount") {
-            if git_dir.is_none() {
-                return missing_git_dir();
+            ensure_git_dir()?;
+            Command::Mount {
+                mountpoint: matches.value_of("MOUNTPOINT").unwrap().parse()?,
+                tree: matches.value_of("TREE").unwrap().to_string(),
             }
-            let tree = matches.value_of("TREE").map(ToString::to_string);
-            let mountpoint = matches.value_of("MOUNTPOINT").unwrap().parse()?;
-            Command::Mount { mountpoint, tree }
         } else if let Some(matches) = matches.subcommand_matches("snapshot") {
-            if git_dir.is_none() {
-                return missing_git_dir();
+            ensure_git_dir()?;
+            Command::PlantSnapshot {
+                snapshot: matches.value_of("SNAPSHOT").unwrap().parse()?,
             }
-            let snapshot = matches.value_of("SNAPSHOT").unwrap().parse()?;
-            Command::PlantSnapshot { snapshot }
         } else {
             panic!()
         };

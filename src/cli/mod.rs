@@ -42,18 +42,14 @@ pub fn run(args: Args) -> Result<()> {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
             let db = Database::new(&git_dir);
-            let tree = tree
-                .map(|s| Oid::from_str(&s).map_err(Into::into))
-                .unwrap_or_else(|| db.head())?;
+            let tree = Oid::from_str(&tree)?;
             db.check(tree)?;
         }
         Command::UniqueBlobs { tree } => {
             let git_dir = git_dir.unwrap();
             let git_dir = git2::Repository::open_bare(git_dir)?;
             let db = Database::new(&git_dir);
-            let tree = tree
-                .map(|s| Oid::from_str(&s).map_err(Into::into))
-                .unwrap_or_else(|| db.head())?;
+            let tree = Oid::from_str(&tree)?;
             db.unique_blobs(tree, |path, blob| {
                 println!("{} {}", blob, path.join().display());
                 Ok(())
@@ -65,9 +61,7 @@ pub fn run(args: Args) -> Result<()> {
             let db = Database::new(&git_dir);
             let blob_store = blob_store.unwrap();
             let blob_store = MockRealBlobStorage::new(blob_store);
-            let tree = tree
-                .map(|s| Oid::from_str(&s).map_err(Into::into))
-                .unwrap_or_else(|| db.head())?;
+            let tree = Oid::from_str(&tree)?;
             db.mount(tree, &mountpoint, blob_store)?;
         }
         Command::PlantSnapshot { snapshot } => {
