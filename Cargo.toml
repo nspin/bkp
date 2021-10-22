@@ -1,0 +1,15 @@
+[package]
+name = "bulk-primitive"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+libc = "*"
+hex = "*"
+log = "*"
+env_logger = "*"
+clap = "*"
+git2 = "*"
+fuser = "*"
+regex = "*"
+lazy_static = "*"

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -eu
+
+PYTHONPATH="$BULK_LIBEXECDIR/python:${PYTHONPATH:-}" exec python3 -m bulk.cli "$@"
