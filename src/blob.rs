@@ -8,7 +8,7 @@ use std::{
 
 use crate::bail;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct RealBlob {
     digest: [u8; Self::DIGEST_SIZE],
 }

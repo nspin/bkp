@@ -83,6 +83,11 @@ impl Database {
     }
 
     pub fn store_snapshot(&self, blob_store: &impl RealBlobStorage, tree: Oid, subject: &Path) -> Result<()> {
-        todo!()
+        self.unique_blobs(tree, |path, blob| {
+            let src = subject.join(path.join());
+            blob_store.store(blob, &src)?;
+            Ok(())
+        })?;
+        Ok(())
     }
 }

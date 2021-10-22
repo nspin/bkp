@@ -22,11 +22,15 @@ pub struct Args {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    Check {
-        tree: String,
-    },
     Mount {
         mountpoint: PathBuf,
+        tree: String,
+    },
+    Snapshot {
+        subject: PathBuf,
+        relative_path: PathBuf,
+    },
+    Check {
         tree: String,
     },
 
@@ -72,15 +76,18 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .help("Constrains execution to read-only operations."),
         )
 
-        .subcommand(SubCommand::with_name("check").arg(
-            Arg::with_name("TREE").default_value("HEAD").index(1))
-        )
-
-
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
                 .arg(Arg::with_name("TREE").default_value("HEAD").index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("snapshot")
+                .arg(Arg::with_name("SUBJECT").required(true).index(1))
+                .arg(Arg::with_name("RELATIVE_PATH").required(true).index(2)),
+        )
+        .subcommand(SubCommand::with_name("check").arg(
+            Arg::with_name("TREE").default_value("HEAD").index(1))
         )
 
         // internal
@@ -131,7 +138,7 @@ impl Args {
         };
 
         let ensure_blob_store = || if blob_store.is_none() {
-            Err(Box::<dyn Error>::from("missing '--git-dir'"))
+            Err(Box::<dyn Error>::from("missing '--blob-store'"))
         } else {
             Ok(())
         };
@@ -146,6 +153,13 @@ impl Args {
             Command::Mount {
                 mountpoint: submatches.value_of("MOUNTPOINT").unwrap().parse()?,
                 tree: submatches.value_of("TREE").unwrap().to_string(),
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("snapshot") {
+            ensure_git_dir()?;
+            ensure_blob_store()?;
+            Command::Snapshot {
+                subject: submatches.value_of("SUBJECT").unwrap().parse()?,
+                relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("unique-blobs") {
             ensure_git_dir()?;
@@ -164,6 +178,7 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("store-snapshot") {
             ensure_git_dir()?;
+            ensure_blob_store()?;
             Command::StoreSnapshot {
                 tree: submatches.value_of("TREE").unwrap().parse()?,
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
