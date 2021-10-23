@@ -1,6 +1,6 @@
 use std::{path::PathBuf};
-use git2::{Repository, Oid};
-use crate::{Result, Database, MockRealBlobStorage, Snapshot};
+use git2::{Repository};
+use crate::{Result, Database, FilesystemRealBlobStorage, Snapshot};
 
 mod args;
 
@@ -25,13 +25,14 @@ impl Args {
         Ok(Database::new(Repository::open_bare(git_dir)?))
     }
 
-    fn blob_storage(&self) -> Result<MockRealBlobStorage> {
+    fn blob_storage(&self) -> Result<FilesystemRealBlobStorage> {
         let blob_store = self.blob_store.as_ref().unwrap();
-        Ok(MockRealBlobStorage::new(blob_store))
+        Ok(FilesystemRealBlobStorage::new(blob_store))
     }
 
     fn apply_verbosity(&self) {
-        let level_filter = match self.verbosity {
+        const HACK_VERBOSITY: u64 = 2;
+        let level_filter = match HACK_VERBOSITY + self.verbosity {
             0 => log::LevelFilter::Error,
             1 => log::LevelFilter::Warn,
             2 => log::LevelFilter::Info,
@@ -50,14 +51,24 @@ impl Args {
                 db.mount(tree, &mountpoint, blob_store)?;
             }
             Command::Snapshot { subject, relative_path } => {
+                assert!(relative_path.to_str().unwrap().ends_with("/"));
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
                 let tmp: PathBuf = "tmp.snapshot".parse()?; // TODO
                 let snapshot = Snapshot::new(tmp);
+                log::info!("taking snapshot of {} to {}", subject.display(), snapshot.path().display());
                 snapshot.take(&subject)?;
+                log::info!("planting snapshot");
                 let (mode, tree) = db.plant_snapshot(&snapshot)?;
-                eprintln!("planted: {:06o},{}", u32::from(mode), tree);
+                log::info!("planted: {:06o},{}", u32::from(mode), tree);
+                log::info!("storing snapshot");
                 db.store_snapshot(&blob_store, tree, &subject)?;
+                log::info!("addint snapshot to index at {}", relative_path.display());
+                db.invoke_git(&[
+                    "update-index".to_string(),
+                    "--add".to_string(),
+                    format!("--cacheinfo {:06o},{},{}", u32::from(mode), tree, relative_path.display()),
+                ])?;
             }
             Command::Check { tree } => {
                 let db = self.database()?;

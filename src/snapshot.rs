@@ -22,6 +22,10 @@ impl Snapshot {
         }
     }
 
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     fn nodes_path(&self) -> PathBuf {
         self.path.join("nodes")
     }
