@@ -36,34 +36,43 @@ impl Database {
         for arg in args {
             cmd.arg(arg.as_ref());
         }
+        eprintln!("{:?}", cmd);
         cmd.status()?.exit_ok()?;
         Ok(())
     }
 
-    fn add_to_index_unchecked(&self, mode: FileMode, tree: Oid, encoded_path: &Path) -> Result<()> {
+    fn add_to_index_unchecked(&self, mode: FileMode, tree: Oid, encoded_path: &Path, add_trailing_slash: bool) -> Result<()> {
+        let trailing_slash = if add_trailing_slash { "/" } else { "" };
         self.invoke_git(&[
             "update-index".to_string(),
             "--add".to_string(),
-            format!("--cacheinfo {:06o},{},{}", u32::from(mode), tree, encoded_path.display()),
+            "--cacheinfo".to_string(),
+            format!("{:06o},{},{}{}", u32::from(mode), tree, encoded_path.display(), trailing_slash)
         ])
     }
 
     pub fn add_to_index(&self, mode: FileMode, tree: Oid, relative_path: &Path) -> Result<()> {
         let empty_blob_oid = self.empty_blob_oid()?;
         let mut encoded_path = PathBuf::new();
-        let mut components = relative_path.components();
-        loop {
-            let marker = encoded_path.join(BulkTreeEntryName::Marker.encode());
-            self.add_to_index_unchecked(FileMode::Blob, empty_blob_oid, &marker)?;
-            let component = match components.next() {
-                None => break,
-                Some(Component::Normal(component)) => component,
-                _ => panic!(),
-            };
-            let entry = BulkTreeEntryName::Child(component.to_str().unwrap());
+        if let Some(relative_path_parent) = relative_path.parent() {
+            let mut components = relative_path_parent.components();
+            loop {
+                let marker = encoded_path.join(BulkTreeEntryName::Marker.encode());
+                self.add_to_index_unchecked(FileMode::Blob, empty_blob_oid, &marker, false)?;
+                let component = match components.next() {
+                    None => break,
+                    Some(Component::Normal(component)) => component,
+                    _ => panic!(),
+                };
+                let entry = BulkTreeEntryName::Child(component.to_str().unwrap());
+                encoded_path.push(entry.encode());
+            }
+        }
+        if let Some(relative_path_file_name) = relative_path.file_name() {
+            let entry = BulkTreeEntryName::Child(relative_path_file_name.to_str().unwrap());
             encoded_path.push(entry.encode());
         }
-        self.add_to_index_unchecked(mode, tree, &encoded_path)?;
+        self.add_to_index_unchecked(mode, tree, &encoded_path, true)?;
         Ok(())
     }
 
