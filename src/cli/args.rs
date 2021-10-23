@@ -48,6 +48,11 @@ pub enum Command {
         tree: String,
         subject: PathBuf,
     },
+    AddToIndex {
+        mode: String,
+        tree: String,
+        relative_path: PathBuf,
+    },
     Sha256Sum {
         path: PathBuf,
     },
@@ -111,6 +116,12 @@ fn app<'a, 'b>() -> App<'a, 'b> {
             SubCommand::with_name("store-snapshot")
                 .arg(Arg::with_name("TREE").required(true).index(1))
                 .arg(Arg::with_name("SUBJECT").required(true).index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("add-to-index")
+                .arg(Arg::with_name("MODE").required(true).index(1))
+                .arg(Arg::with_name("TREE").required(true).index(2))
+                .arg(Arg::with_name("RELATIVE_PATH").required(true).index(3)),
         )
         .subcommand(
             SubCommand::with_name("sha256sum")
@@ -189,6 +200,13 @@ impl Args {
             Command::StoreSnapshot {
                 tree: submatches.value_of("TREE").unwrap().parse()?,
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("add-to-index") {
+            ensure_git_dir()?;
+            Command::AddToIndex {
+                mode: submatches.value_of("MODE").unwrap().parse()?,
+                tree: submatches.value_of("TREE").unwrap().parse()?,
+                relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("sha256sum") {
             Command::Sha256Sum {

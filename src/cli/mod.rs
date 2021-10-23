@@ -1,5 +1,5 @@
 use std::{path::PathBuf};
-use git2::{Repository};
+use git2::{Repository, FileMode};
 use crate::{Result, Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
 
 mod args;
@@ -94,6 +94,13 @@ impl Args {
                 let blob_store = self.blob_storage()?;
                 let tree = db.resolve_treeish(&tree)?;
                 db.store_snapshot(&blob_store, tree, &subject)?;
+            }
+            Command::AddToIndex { mode, tree, relative_path } => {
+                assert!(relative_path.to_str().unwrap().ends_with("/"));
+                let db = self.database()?;
+                let tree = db.resolve_treeish(&tree)?;
+                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
+                db.add_to_index(FileMode::Tree, tree, relative_path)?;
             }
             Command::Sha256Sum { path } => {
                 let blob = sha256sum(path)?;
