@@ -1,9 +1,10 @@
 use std::{
     process::Command,
+    path::{Path, PathBuf, Component},
 };
-use git2::{Repository, Oid};
+use git2::{Repository, Oid, FileMode};
 
-use crate::{Result};
+use crate::{Result, BulkTreeEntryName};
 
 mod traverse;
 mod snapshot;
@@ -37,5 +38,37 @@ impl Database {
         }
         cmd.status()?.exit_ok()?;
         Ok(())
+    }
+
+    fn add_to_index_unchecked(&self, mode: FileMode, tree: Oid, encoded_path: &Path) -> Result<()> {
+        self.invoke_git(&[
+            "update-index".to_string(),
+            "--add".to_string(),
+            format!("--cacheinfo {:06o},{},{}", u32::from(mode), tree, encoded_path.display()),
+        ])
+    }
+
+    pub fn add_to_index(&self, mode: FileMode, tree: Oid, relative_path: &Path) -> Result<()> {
+        let empty_blob_oid = self.empty_blob_oid()?;
+        let mut encoded_path = PathBuf::new();
+        let mut components = relative_path.components();
+        loop {
+            let marker = encoded_path.join(BulkTreeEntryName::Marker.encode());
+            self.add_to_index_unchecked(FileMode::Blob, empty_blob_oid, &marker)?;
+            let component = match components.next() {
+                None => break,
+                Some(Component::Normal(component)) => component,
+                _ => panic!(),
+            };
+            let entry = BulkTreeEntryName::Child(component.to_str().unwrap());
+            encoded_path.push(entry.encode());
+        }
+        self.add_to_index_unchecked(mode, tree, &encoded_path)?;
+        Ok(())
+    }
+
+    pub fn empty_blob_oid(&self) -> Result<Oid> {
+        let writer = self.repository().blob_writer(None)?;
+        Ok(writer.commit()?)
     }
 }

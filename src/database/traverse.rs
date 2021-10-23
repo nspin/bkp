@@ -201,7 +201,7 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
     pub fn traverse(&mut self, tree: Oid) -> Result<()> {
         self.traverse_from(&mut Location::new(), tree)
     }
-    
+
     pub fn traverse_from(&mut self, path: &mut Location, tree: Oid) -> Result<()> {
         if let VisitTreeDecision::Skip = self.callbacks.on_tree(&Visit {
             repository: self.repository,

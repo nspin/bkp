@@ -63,12 +63,8 @@ impl Args {
                 log::info!("planted: {:06o},{}", u32::from(mode), tree);
                 log::info!("storing snapshot");
                 db.store_snapshot(&blob_store, tree, &subject)?;
-                log::info!("addint snapshot to index at {}", relative_path.display());
-                db.invoke_git(&[
-                    "update-index".to_string(),
-                    "--add".to_string(),
-                    format!("--cacheinfo {:06o},{},{}", u32::from(mode), tree, relative_path.display()),
-                ])?;
+                log::info!("adding snapshot to index at {}", relative_path.display());
+                db.add_to_index(mode, tree, relative_path)?;
             }
             Command::Check { tree } => {
                 let db = self.database()?;

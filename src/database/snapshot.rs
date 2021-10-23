@@ -21,11 +21,6 @@ impl Database {
         Ok(ret)
     }
 
-    fn empty_blob_oid(&self) -> Result<Oid> {
-        let writer = self.repository().blob_writer(None)?;
-        Ok(writer.commit()?)
-    }
-
     fn plant_snapshot_inner(
         &self,
         entries: &mut BufferedSnapshotEntries<impl io::BufRead>,
