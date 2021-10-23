@@ -48,6 +48,9 @@ pub enum Command {
         tree: String,
         subject: PathBuf,
     },
+    Sha256Sum {
+        path: PathBuf,
+    },
 }
 
 fn app<'a, 'b>() -> App<'a, 'b> {
@@ -108,6 +111,10 @@ fn app<'a, 'b>() -> App<'a, 'b> {
             SubCommand::with_name("store-snapshot")
                 .arg(Arg::with_name("TREE").required(true).index(1))
                 .arg(Arg::with_name("SUBJECT").required(true).index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("sha256sum")
+                .arg(Arg::with_name("PATH").required(true).index(1))
         )
 }
 
@@ -182,6 +189,10 @@ impl Args {
             Command::StoreSnapshot {
                 tree: submatches.value_of("TREE").unwrap().parse()?,
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("sha256sum") {
+            Command::Sha256Sum {
+                path: submatches.value_of("PATH").unwrap().parse()?,
             }
         } else {
             panic!()

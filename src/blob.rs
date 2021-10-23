@@ -20,6 +20,12 @@ impl RealBlob {
         Self { digest }
     }
 
+    pub fn from_slice(digest: &[u8]) -> Self {
+        let mut arr = [0; Self::DIGEST_SIZE];
+        arr.copy_from_slice(digest);
+        Self::new(arr)
+    }
+
     pub fn to_hex(&self) -> String {
         hex::encode(self.digest)
     }

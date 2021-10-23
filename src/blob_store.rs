@@ -4,6 +4,7 @@ use std::{
     fs::{self, OpenOptions},
     io,
 };
+use sha2::{Sha256, Digest};
 use regex::bytes::Regex;
 use lazy_static::lazy_static;
 
@@ -139,7 +140,7 @@ impl RealBlobStorage for MockRealBlobStorage {
     }
 }
 
-fn sha256sum(path: &Path) -> Result<RealBlob> {
+pub fn sha256sum_coreutils(path: &Path) -> Result<RealBlob> {
     lazy_static! {
         static ref RE: Regex =
             Regex::new(r"(?-u)(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
@@ -155,6 +156,19 @@ fn sha256sum(path: &Path) -> Result<RealBlob> {
     // eprintln!("{:?}", std::ffi::OsStr::from_bytes(&output.stdout));
     let caps = RE.captures(&output.stdout).ok_or("regex does not match")?;
     Ok(RealBlob::from_hex(&caps["digest"])?)
+}
+
+#[allow(dead_code)]
+pub fn sha256sum_rust(path: &Path) -> Result<RealBlob> {
+    let mut file = OpenOptions::new().read(true).open(path)?;
+    let mut hasher = Sha256::new();
+    io::copy(&mut file, &mut hasher)?;
+    let hash = hasher.finalize();
+    Ok(RealBlob::from_slice(&hash))
+}
+
+pub fn sha256sum(path: &Path) -> Result<RealBlob> {
+    sha256sum_coreutils(path)
 }
 
 fn check_sha256sum(expected: &RealBlob, path: &Path) -> Result<()> {

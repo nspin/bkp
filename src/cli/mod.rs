@@ -1,6 +1,6 @@
 use std::{path::PathBuf};
 use git2::{Repository};
-use crate::{Result, Database, FilesystemRealBlobStorage, Snapshot};
+use crate::{Result, Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
 
 mod args;
 
@@ -94,6 +94,10 @@ impl Args {
                 let blob_store = self.blob_storage()?;
                 let tree = db.resolve_treeish(&tree)?;
                 db.store_snapshot(&blob_store, tree, &subject)?;
+            }
+            Command::Sha256Sum { path } => {
+                let blob = sha256sum(path)?;
+                println!("{} *{}", blob, path.display());
             }
         }
         Ok(())
