@@ -90,7 +90,10 @@ impl RealBlobStorage for FilesystemRealBlobStorage {
             fs::create_dir(&partial_parent)?;
         }
 
-        let mut partial_file = OpenOptions::new().create_new(true).write(true).open(&partial_path)?;
+        let mut partial_file = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&partial_path)?;
 
         // TODO
         // - https://github.com/rust-lang/rust/blob/55ccbd090d96ec3bb28dbcb383e65bbfa3c293ff/library/std/src/sys/unix/fs.rs#L1277

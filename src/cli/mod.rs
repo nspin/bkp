@@ -50,13 +50,20 @@ impl Args {
                 let tree = db.resolve_treeish(&tree)?;
                 db.mount(tree, &mountpoint, blob_store)?;
             }
-            Command::Snapshot { subject, relative_path } => {
+            Command::Snapshot {
+                subject,
+                relative_path,
+            } => {
                 assert!(relative_path.to_str().unwrap().ends_with("/"));
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
                 let tmp: PathBuf = "tmp.snapshot".parse()?; // TODO
                 let snapshot = Snapshot::new(tmp);
-                log::info!("taking snapshot of {} to {}", subject.display(), snapshot.path().display());
+                log::info!(
+                    "taking snapshot of {} to {}",
+                    subject.display(),
+                    snapshot.path().display()
+                );
                 snapshot.take(&subject)?;
                 log::info!("planting snapshot");
                 let (mode, tree) = db.plant_snapshot(&snapshot)?;
@@ -71,7 +78,13 @@ impl Args {
                 let tree_a = db.resolve_treeish(&tree_a)?;
                 let tree_b = db.resolve_treeish(&tree_b)?;
                 db.diff(tree_a, tree_b, |side, path, entry| {
-                    println!("{} {:06o} {} {}", side, entry.mode, &entry.oid, path.join().join(&entry.name).display());
+                    println!(
+                        "{} {:06o} {} {}",
+                        side,
+                        entry.mode,
+                        &entry.oid,
+                        path.join().join(&entry.name).display()
+                    );
                     Ok(())
                 })?;
             }
@@ -104,7 +117,11 @@ impl Args {
                 let tree = db.resolve_treeish(&tree)?;
                 db.store_snapshot(&blob_store, tree, &subject)?;
             }
-            Command::AddToIndex { mode, tree, relative_path } => {
+            Command::AddToIndex {
+                mode,
+                tree,
+                relative_path,
+            } => {
                 assert!(relative_path.to_str().unwrap().ends_with("/"));
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;

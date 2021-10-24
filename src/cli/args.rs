@@ -87,7 +87,6 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .long("ro")
                 .help("Constrains execution to read-only operations."),
         )
-
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
@@ -103,14 +102,14 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .arg(Arg::with_name("TREE_A").required(true).index(1))
                 .arg(Arg::with_name("TREE_B").required(true).index(2)),
         )
-        .subcommand(SubCommand::with_name("check").arg(
-            Arg::with_name("TREE").default_value("HEAD").index(1))
+        .subcommand(
+            SubCommand::with_name("check")
+                .arg(Arg::with_name("TREE").default_value("HEAD").index(1)),
         )
-
         // internal
-
-        .subcommand(SubCommand::with_name("unique-blobs").arg(
-            Arg::with_name("TREE").default_value("HEAD").index(1))
+        .subcommand(
+            SubCommand::with_name("unique-blobs")
+                .arg(Arg::with_name("TREE").default_value("HEAD").index(1)),
         )
         .subcommand(
             SubCommand::with_name("take-snapshot")
@@ -133,8 +132,7 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .arg(Arg::with_name("RELATIVE_PATH").required(true).index(3)),
         )
         .subcommand(
-            SubCommand::with_name("sha256sum")
-                .arg(Arg::with_name("PATH").required(true).index(1))
+            SubCommand::with_name("sha256sum").arg(Arg::with_name("PATH").required(true).index(1)),
         )
 }
 
@@ -153,21 +151,31 @@ impl Args {
     }
 
     fn match_<'a>(matches: ArgMatches<'a>) -> Result<Self> {
-        let git_dir = matches.value_of("git-dir").map(PathBuf::from).or_else(|| path_from_env(ENV_GIT_DIR));
-        let blob_store = matches.value_of("blob-store").map(PathBuf::from).or_else(|| path_from_env(ENV_BLOB_STORE));
+        let git_dir = matches
+            .value_of("git-dir")
+            .map(PathBuf::from)
+            .or_else(|| path_from_env(ENV_GIT_DIR));
+        let blob_store = matches
+            .value_of("blob-store")
+            .map(PathBuf::from)
+            .or_else(|| path_from_env(ENV_BLOB_STORE));
         let read_only = matches.is_present("read-only");
         let verbosity = matches.occurrences_of("v");
 
-        let ensure_git_dir = || if git_dir.is_none() {
-            Err(Box::<dyn Error>::from("missing '--git-dir'"))
-        } else {
-            Ok(())
+        let ensure_git_dir = || {
+            if git_dir.is_none() {
+                Err(Box::<dyn Error>::from("missing '--git-dir'"))
+            } else {
+                Ok(())
+            }
         };
 
-        let ensure_blob_store = || if blob_store.is_none() {
-            Err(Box::<dyn Error>::from("missing '--blob-store'"))
-        } else {
-            Ok(())
+        let ensure_blob_store = || {
+            if blob_store.is_none() {
+                Err(Box::<dyn Error>::from("missing '--blob-store'"))
+            } else {
+                Ok(())
+            }
         };
 
         let command = if let Some(submatches) = matches.subcommand_matches("check") {

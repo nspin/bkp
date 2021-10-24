@@ -7,8 +7,7 @@ use git2::{Oid, FileMode};
 
 use crate::{
     Database, Result, Snapshot, SnapshotEntry, SnapshotEntryValue, BufferedSnapshotEntries,
-    BulkTreeEntryName,
-    RealBlobStorage,
+    BulkTreeEntryName, RealBlobStorage,
 };
 
 impl Database {
@@ -77,7 +76,12 @@ impl Database {
         })
     }
 
-    pub fn store_snapshot(&self, blob_store: &impl RealBlobStorage, tree: Oid, subject: &Path) -> Result<()> {
+    pub fn store_snapshot(
+        &self,
+        blob_store: &impl RealBlobStorage,
+        tree: Oid,
+        subject: &Path,
+    ) -> Result<()> {
         self.unique_blobs(tree, |path, blob| {
             let src = subject.join(path.join());
             blob_store.store(blob, &src)?;

@@ -5,7 +5,10 @@ use git2::{Repository, Oid, ObjectType, FileMode};
 use crate::{Database, Result, RealBlob, BulkTreeEntryName, bail, ensure};
 
 impl Database {
-    pub fn traverser<'a, T: TraversalCallbacks>(&'a self, callbacks: &'a mut T) -> Traverser<'a, T> {
+    pub fn traverser<'a, T: TraversalCallbacks>(
+        &'a self,
+        callbacks: &'a mut T,
+    ) -> Traverser<'a, T> {
         Traverser {
             repository: &self.repository(),
             callbacks,
@@ -44,9 +47,7 @@ impl Database {
                 Ok(())
             }
         }
-        let mut callbacks = OnUnique::new(UniqueBlobsCallbacks {
-            callback,
-        });
+        let mut callbacks = OnUnique::new(UniqueBlobsCallbacks { callback });
         self.traverser(&mut callbacks).traverse(tree)
     }
 }

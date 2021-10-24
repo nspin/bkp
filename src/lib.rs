@@ -8,8 +8,8 @@ pub use snapshot::{
     Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BufferedSnapshotEntries,
 };
 pub use database::{
-    Database, TraversalCallbacks, Traverser, Location, Visit, VisitBlob, VisitLink,
-    VisitTree, VisitTreeDecision,
+    Database, TraversalCallbacks, Traverser, Location, Visit, VisitBlob, VisitLink, VisitTree,
+    VisitTreeDecision,
 };
 pub use cli::cli_main;
 
