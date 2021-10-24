@@ -88,6 +88,15 @@ impl Args {
                     Ok(())
                 })?;
             }
+            Command::Append { big_tree, relative_path, mode, object } => {
+                let db = self.database()?;
+                let big_tree = db.resolve_treeish(&big_tree)?;
+                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
+                let mode = FileMode::Tree;
+                let object = db.resolve_treeish(&object)?;
+                let new_tree = db.append(big_tree, &relative_path, mode, object)?;
+                println!("{}", new_tree)
+            }
             Command::Check { tree } => {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;

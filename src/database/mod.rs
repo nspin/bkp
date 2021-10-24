@@ -9,6 +9,7 @@ use crate::{Result, BulkTreeEntryName};
 mod traverse;
 mod snapshot;
 mod diff;
+mod append;
 
 pub use traverse::{
     TraversalCallbacks, Traverser, Location, Visit, VisitBlob, VisitLink, VisitTree,
