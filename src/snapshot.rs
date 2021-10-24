@@ -144,7 +144,7 @@ pub struct NodesEntry {
 
 impl NodesEntry {
     fn is_executable(&self) -> bool {
-        self.mode | 0o100 != 0
+        self.mode & 0o100 != 0
     }
 }
 
