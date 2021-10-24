@@ -6,6 +6,7 @@ use std::{
     iter::{FromIterator, IntoIterator},
     os::unix::io::AsRawFd,
     convert::{TryFrom, TryInto},
+    error::Error,
 };
 use log::error;
 use libc::{EINVAL, ENOENT};
@@ -15,7 +16,7 @@ use fuser::{
     ReplyOpen, ReplyEmpty,
 };
 
-use crate::{bail, ensure, format_err};
+use crate::{bail, ensure};
 use crate::{RealBlobStorage, Result, RealBlob, BulkTreeEntryName};
 
 const TTL: Duration = Duration::from_secs(1);
@@ -176,7 +177,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get_mut(&parent).unwrap() {
                 InodeEntry::Tree { oid, .. } => Ok(oid),
-                _ => Err(format_err!("")),
+                _ => Err(Box::<dyn Error>::from(format!("lookup: parent inode {} not present", parent))),
             }
         );
         let tree = self.repository.find_tree(oid.clone()).unwrap();
@@ -211,7 +212,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get(&ino).unwrap() {
                 InodeEntry::Tree { oid, parent } => Ok((*oid, *parent)),
-                _ => Err(format_err!("")),
+                _ => Err(Box::<dyn Error>::from(format!("readdir: inode {} not present", ino))),
             }
         );
         let always: Vec<Result<Option<(u64, FileType, String)>>> = vec![
@@ -263,7 +264,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get(&ino).unwrap() {
                 InodeEntry::Link { oid, .. } => Ok(oid),
-                _ => Err(format_err!("")),
+                _ => Err(Box::<dyn Error>::from(format!("readlink: inode {} not present", ino))),
             }
         );
         let blob = self.repository.find_blob(oid.clone()).unwrap();

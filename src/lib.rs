@@ -1,6 +1,6 @@
 #![feature(exit_status_error)]
 
-pub use error::{Result, LameError};
+pub use error::{Result};
 pub use entry::BulkTreeEntryName;
 pub use blob::RealBlob;
 pub use blob_store::{RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage, sha256sum};

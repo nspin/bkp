@@ -52,10 +52,8 @@ impl Snapshot {
             .arg("--")
             .arg(subject)
             .arg(&self.path)
-            .status()
-            .unwrap()
-            .exit_ok()
-            .unwrap();
+            .status()?
+            .exit_ok()?;
         Ok(())
     }
 }
@@ -135,11 +133,11 @@ impl<T: io::BufRead> BufferedSnapshotEntries<T> {
 }
 
 #[derive(Debug)]
-pub struct NodesEntry {
-    pub ty: u8, // [dflcbsp]
-    pub mode: u16,
-    pub path: PathBuf,
-    pub target: PathBuf,
+struct NodesEntry {
+    ty: u8, // [dflcbsp]
+    mode: u16,
+    path: PathBuf,
+    target: PathBuf,
 }
 
 impl NodesEntry {
@@ -177,9 +175,9 @@ impl<T: io::BufRead> NodesEntries<T> {
 }
 
 #[derive(Debug)]
-pub struct DigestsEntry {
-    pub digest: RealBlob,
-    pub path: PathBuf,
+struct DigestsEntry {
+    digest: RealBlob,
+    path: PathBuf,
 }
 
 struct DigestsEntries<T> {

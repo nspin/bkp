@@ -4,32 +4,13 @@ use std::result;
 
 pub type Result<T> = result::Result<T, Box<dyn Error>>;
 
-#[derive(Debug)]
-pub struct LameError {
-    msg: String,
-}
-
-impl fmt::Display for LameError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
-}
-
-impl Error for LameError {}
-
-impl LameError {
-    pub fn new(msg: String) -> Self {
-        Self { msg }
-    }
-}
-
 #[macro_export]
 macro_rules! bail {
     ($e:expr) => {
-        return Err($crate::format_err!($e))
+        return Err(std::boxed::Box::<dyn std::error::Error>::from(format!($e)))
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return Err($crate::format_err!($fmt, $($arg)*))
+        return Err(std::boxed::Box::<dyn std::error::Error>::from(format!($fmt, $($arg)*)))
     };
 }
 
@@ -50,9 +31,4 @@ macro_rules! ensure {
             $crate::bail!($fmt, $($arg)*);
         }
     };
-}
-
-#[macro_export]
-macro_rules! format_err {
-    ($($arg:tt)*) => { std::boxed::Box::new($crate::LameError::new(std::format!($($arg)*))) }
 }
