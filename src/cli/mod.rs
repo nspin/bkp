@@ -66,6 +66,15 @@ impl Args {
                 log::info!("adding snapshot to index at {}", relative_path.display());
                 db.add_to_index(mode, tree, relative_path)?;
             }
+            Command::Diff { tree_a, tree_b } => {
+                let db = self.database()?;
+                let tree_a = db.resolve_treeish(&tree_a)?;
+                let tree_b = db.resolve_treeish(&tree_b)?;
+                db.diff(tree_a, tree_b, |side, path, entry| {
+                    println!("{} {:06o} {} {}", side, entry.mode, &entry.oid, path.join().join(&entry.name).display());
+                    Ok(())
+                })?;
+            }
             Command::Check { tree } => {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;

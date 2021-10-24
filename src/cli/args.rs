@@ -30,6 +30,10 @@ pub enum Command {
         subject: PathBuf,
         relative_path: PathBuf,
     },
+    Diff {
+        tree_a: String,
+        tree_b: String,
+    },
     Check {
         tree: String,
     },
@@ -93,6 +97,11 @@ fn app<'a, 'b>() -> App<'a, 'b> {
             SubCommand::with_name("snapshot")
                 .arg(Arg::with_name("SUBJECT").required(true).index(1))
                 .arg(Arg::with_name("RELATIVE_PATH").required(true).index(2)),
+        )
+        .subcommand(
+            SubCommand::with_name("diff")
+                .arg(Arg::with_name("TREE_A").required(true).index(1))
+                .arg(Arg::with_name("TREE_B").required(true).index(2)),
         )
         .subcommand(SubCommand::with_name("check").arg(
             Arg::with_name("TREE").default_value("HEAD").index(1))
@@ -178,6 +187,12 @@ impl Args {
             Command::Snapshot {
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
                 relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("diff") {
+            ensure_git_dir()?;
+            Command::Diff {
+                tree_a: submatches.value_of("TREE_A").unwrap().parse()?,
+                tree_b: submatches.value_of("TREE_B").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("unique-blobs") {
             ensure_git_dir()?;

@@ -156,7 +156,7 @@ impl<'a> Visit<'a, VisitLink> {
 pub struct Location(Vec<String>);
 
 impl Location {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(vec![])
     }
 
@@ -164,11 +164,11 @@ impl Location {
         &self.0
     }
 
-    fn push(&mut self, seg: String) {
+    pub fn push(&mut self, seg: String) {
         self.0.push(seg);
     }
 
-    fn pop(&mut self) {
+    pub fn pop(&mut self) {
         self.0.pop();
     }
 
