@@ -12,7 +12,7 @@ pub use blob::{
 };
 pub use blob_store::{RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage, sha256sum};
 pub use snapshot::{
-    Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BufferedSnapshotEntries,
+    Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries,
 };
 pub use database::{
     Database,

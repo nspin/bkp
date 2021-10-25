@@ -7,8 +7,9 @@ use std::{
 };
 use regex::Regex;
 use lazy_static::lazy_static;
+use fallible_iterator::FallibleIterator;
 use crate::{BlobShadowContentSh256, BulkPath};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
 
@@ -77,15 +78,11 @@ pub struct SnapshotEntries<T> {
     digests_entries: DigestsEntries<T>,
 }
 
-impl<T: io::BufRead> SnapshotEntries<T> {
-    pub fn buffered(self) -> BufferedSnapshotEntries<T> {
-        BufferedSnapshotEntries {
-            entries: self,
-            entry: None,
-        }
-    }
+impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
+    type Item = SnapshotEntry;
+    type Error = Error;
 
-    pub fn next(&mut self) -> Result<Option<SnapshotEntry>> {
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         while let Some(node_line) = self.nodes_entries.next()? {
             let path = node_line.path.parse()?;
             let value = match node_line.ty {
@@ -112,27 +109,6 @@ impl<T: io::BufRead> SnapshotEntries<T> {
     }
 }
 
-pub struct BufferedSnapshotEntries<T> {
-    entries: SnapshotEntries<T>,
-    entry: Option<SnapshotEntry>,
-}
-
-impl<T: io::BufRead> BufferedSnapshotEntries<T> {
-    pub fn peek(&mut self) -> Result<Option<&SnapshotEntry>> {
-        if self.entry.is_none() {
-            self.entry = self.entries.next()?;
-        }
-        Ok(self.entry.as_ref())
-    }
-
-    pub fn consume(&mut self) -> Result<Option<SnapshotEntry>> {
-        let _ = self.peek()?;
-        let mut entry = None;
-        mem::swap(&mut entry, &mut self.entry);
-        Ok(entry)
-    }
-}
-
 #[derive(Debug)]
 struct NodesEntry {
     ty: char, // [dflcbsp]
@@ -151,8 +127,11 @@ struct NodesEntries<T> {
     reader: T,
 }
 
-impl<T: io::BufRead> NodesEntries<T> {
-    fn next(&mut self) -> Result<Option<NodesEntry>> {
+impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
+    type Item = NodesEntry;
+    type Error = Error;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
                 r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{4}) (?P<path>.*)\x00(?P<target>.*)\x00"
@@ -186,8 +165,11 @@ struct DigestsEntries<T> {
     reader: T,
 }
 
-impl<T: io::BufRead> DigestsEntries<T> {
-    fn next(&mut self) -> Result<Option<DigestsEntry>> {
+impl<T: io::BufRead> FallibleIterator for DigestsEntries<T> {
+    type Item = DigestsEntry;
+    type Error = Error;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex =
                 Regex::new(r"(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();

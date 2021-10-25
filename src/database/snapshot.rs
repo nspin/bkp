@@ -4,16 +4,17 @@ use std::{
     os::unix::ffi::OsStrExt,
 };
 use git2::{Oid, FileMode};
+use fallible_iterator::{FallibleIterator, Peekable};
 use anyhow::Result;
 use crate::{
-    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, BufferedSnapshotEntries,
+    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries,
     BulkPathComponent, BulkTreeEntryName, RealBlobStorage,
 };
 
 impl Database {
     pub fn plant_snapshot(&self, snapshot: &Snapshot) -> Result<(FileMode, Oid)> {
-        let mut entries = snapshot.entries()?.buffered();
-        let entry = entries.consume()?.unwrap();
+        let mut entries = snapshot.entries()?.peekable();
+        let entry = entries.next()?.unwrap();
         assert!(entry.path.components().is_empty());
         let ret = self.plant_snapshot_inner(&mut entries, &entry, self.empty_blob_oid()?)?;
         assert!(entries.peek()?.is_none());
@@ -22,7 +23,7 @@ impl Database {
 
     fn plant_snapshot_inner(
         &self,
-        entries: &mut BufferedSnapshotEntries<impl io::BufRead>,
+        entries: &mut Peekable<SnapshotEntries<impl io::BufRead>>,
         entry: &SnapshotEntry,
         empty_blob_oid: Oid,
     ) -> Result<(FileMode, Oid)> {
@@ -60,7 +61,7 @@ impl Database {
                     if &child_candidate.path.components()[.. child_candidate.path.components().len() - 1] != entry.path.components() {
                         break;
                     }
-                    let child = entries.consume()?.unwrap();
+                    let child = entries.next()?.unwrap();
                     let child_name = child.path.components().last().unwrap();
                     let (child_mode, child_oid) =
                         self.plant_snapshot_inner(entries, &child, empty_blob_oid)?;
