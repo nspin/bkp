@@ -180,7 +180,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             }
         );
         let tree = self.repository.find_tree(oid.clone()).unwrap();
-        let entry_name = name.to_str().unwrap().parse::<BulkPathComponent>().unwrap().encode().encode();
+        let entry_name = name.to_str().unwrap().parse::<BulkPathComponent>().unwrap().encode();
         for (i, entry) in tree.iter().enumerate() {
             if entry.name().unwrap() == entry_name {
                 let ino = match self.family_tree.get(&(parent, i)) {

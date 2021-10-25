@@ -3,8 +3,8 @@
 #![allow(unused_imports)]
 
 pub use paths::{
-    BulkTreeEntryName, EncodedBulkPath,
-    BulkPathComponent, BulkPath,
+    BulkPathComponent, BulkPath, AnchoredBulkPath,
+    BulkTreeEntryName,
 };
 pub use blob::{
     BlobShadow,
