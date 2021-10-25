@@ -65,7 +65,7 @@ impl Database {
                     let (child_mode, child_oid) =
                         self.plant_snapshot_inner(entries, &child, empty_blob_oid)?;
                     builder.insert(
-                        child_name.clone().to_child().encode(),
+                        child_name.clone().encode().encode(),
                         child_oid,
                         child_mode.into(),
                     )?;

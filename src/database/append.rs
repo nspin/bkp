@@ -45,7 +45,7 @@ impl Database {
             };
             (FileMode::Tree.into(), this_oid)
         };
-        builder.insert(name.clone().to_child().encode(), this_oid, this_mode)?;
+        builder.insert(name.clone().encode().encode(), this_oid, this_mode)?;
         Ok(builder.write()?)
     }
 
@@ -65,7 +65,7 @@ impl Database {
             let this_oid = self.append_inner_create(next_path, mode, object)?;
             (FileMode::Tree.into(), this_oid)
         };
-        builder.insert(name.clone().to_child().encode(), this_oid, this_mode)?;
+        builder.insert(name.clone().encode().encode(), this_oid, this_mode)?;
         Ok(builder.write()?)
     }
 }

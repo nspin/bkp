@@ -78,18 +78,18 @@ impl fmt::Display for BulkTreeEntryName {
 }
 
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub struct EncodedBulkPath<'a>(&'a BulkPath);
+pub struct EncodedBulkPath(BulkPath);
 
-impl<'a> EncodedBulkPath<'a> {
-    pub fn marker(&'a self) -> EncodedBulkPathMarker<'a> {
+impl EncodedBulkPath {
+    pub fn marker(self) -> EncodedBulkPathMarker {
         EncodedBulkPathMarker(self)
     }
 }
 
-impl<'a> fmt::Display for EncodedBulkPath<'a> {
+impl fmt::Display for EncodedBulkPath {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for chunk in self.0.components().iter().map(|component| {
-            component.clone().to_child().to_string()
+            component.clone().encode().to_string()
         }).intersperse("/".to_string()) {
             write!(fmt, "{}", chunk)?;
         }
@@ -98,9 +98,9 @@ impl<'a> fmt::Display for EncodedBulkPath<'a> {
 }
 
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub struct EncodedBulkPathMarker<'a>(&'a EncodedBulkPath<'a>);
+pub struct EncodedBulkPathMarker(EncodedBulkPath);
 
-impl<'a> fmt::Display for EncodedBulkPathMarker<'a> {
+impl fmt::Display for EncodedBulkPathMarker {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}", self.0)?;
         if self.0.0.components().len() > 0 {
@@ -129,7 +129,7 @@ const DISALLOWED_CHARS: &[char] = &['/', '\0'];
 
 impl BulkPathComponent {
 
-    pub fn to_child(self) -> BulkTreeEntryName {
+    pub fn encode(self) -> BulkTreeEntryName {
         BulkTreeEntryName::Child(self)
     }
 }
@@ -183,8 +183,8 @@ impl BulkPath {
         str::from_utf8(bytes)?.parse()
     }
 
-    pub fn encoded(&self) -> EncodedBulkPath {
-        EncodedBulkPath(&self)
+    pub fn encode(self) -> EncodedBulkPath {
+        EncodedBulkPath(self)
     }
 }
 
