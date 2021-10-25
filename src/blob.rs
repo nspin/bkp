@@ -72,6 +72,7 @@ impl FromStr for BlobShadowContentSh256 {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct BlobShadow {
     content_hash: BlobShadowContentSh256,
     size: u64,
@@ -88,6 +89,10 @@ impl BlobShadow {
     pub fn from_bytes(shadow_content: &[u8]) -> Result<Self, BlobShadowError> {
         let s = str::from_utf8(shadow_content).map_err(BlobShadowError::Utf8Error)?;
         s.parse()
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.to_string().as_bytes().to_vec()
     }
 
     pub fn content_hash(&self) -> &BlobShadowContentSh256 {

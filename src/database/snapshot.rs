@@ -28,16 +28,14 @@ impl Database {
         empty_blob_oid: Oid,
     ) -> Result<(FileMode, Oid)> {
         Ok(match &entry.value {
-            SnapshotEntryValue::File { digest, executable } => {
+            SnapshotEntryValue::File { blob_shadow, executable } => {
                 let mode = if *executable {
                     FileMode::BlobExecutable
                 } else {
                     FileMode::Blob
                 };
-                let mut content = digest.to_hex().as_bytes().to_vec();
-                content.push(b'\n');
                 let mut writer = self.repository().blob_writer(None)?;
-                writer.write_all(&content)?;
+                writer.write_all(&blob_shadow.to_bytes())?;
                 let oid = writer.commit()?;
                 (mode, oid)
             }

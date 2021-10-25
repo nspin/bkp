@@ -8,7 +8,7 @@ use std::{
 use regex::Regex;
 use lazy_static::lazy_static;
 use fallible_iterator::FallibleIterator;
-use crate::{BlobShadowContentSh256, BulkPath};
+use crate::{BlobShadow, BlobShadowContentSh256, BulkPath};
 use anyhow::{anyhow, Error, Result};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
@@ -68,7 +68,7 @@ pub struct SnapshotEntry {
 
 #[derive(Clone, Debug)]
 pub enum SnapshotEntryValue {
-    File { digest: BlobShadowContentSh256, executable: bool },
+    File { blob_shadow: BlobShadow, executable: bool },
     Link { target: String },
     Tree,
 }
@@ -91,7 +91,7 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
                     let digest_line = self.digests_entries.next()?.unwrap();
                     assert_eq!(node_line.path, digest_line.path);
                     SnapshotEntryValue::File {
-                        digest: digest_line.digest.parse()?,
+                        blob_shadow: BlobShadow::new(digest_line.digest.parse()?, node_line.size),
                         executable: node_line.is_executable(),
                     }
                 }
@@ -113,6 +113,7 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
 struct NodesEntry {
     ty: char, // [dflcbsp]
     mode: u16,
+    size: u64,
     path: String,
     target: String,
 }
@@ -134,7 +135,7 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
-                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{4}) (?P<path>.*)\x00(?P<target>.*)\x00"
+                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{4}) (?P<size>[0-9]+) (?P<path>.*)\x00(?P<target>.*)\x00"
             )
             .unwrap();
         }
@@ -149,6 +150,7 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
         Ok(Some(NodesEntry {
             ty: caps["type"].chars().nth(0).unwrap(),
             mode: u16::from_str_radix(&caps["mode"], 8)?,
+            size: caps["size"].parse()?,
             path: caps["path"].to_string(),
             target: caps["target"].to_string(),
         }))
