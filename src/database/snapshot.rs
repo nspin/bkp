@@ -4,17 +4,17 @@ use std::{
     os::unix::ffi::OsStrExt,
 };
 use git2::{Oid, FileMode};
-
+use anyhow::Result;
 use crate::{
-    Database, Result, Snapshot, SnapshotEntry, SnapshotEntryValue, BufferedSnapshotEntries,
-    BulkTreeEntryName, RealBlobStorage,
+    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, BufferedSnapshotEntries,
+    BulkPathComponent, BulkTreeEntryName, RealBlobStorage,
 };
 
 impl Database {
     pub fn plant_snapshot(&self, snapshot: &Snapshot) -> Result<(FileMode, Oid)> {
         let mut entries = snapshot.entries()?.buffered();
         let entry = entries.consume()?.unwrap();
-        assert_eq!(entry.path, PathBuf::new());
+        assert!(entry.path.components().is_empty());
         let ret = self.plant_snapshot_inner(&mut entries, &entry, self.empty_blob_oid()?)?;
         assert!(entries.peek()?.is_none());
         Ok(ret)
@@ -42,7 +42,7 @@ impl Database {
             }
             SnapshotEntryValue::Link { target } => {
                 let mode = FileMode::Link;
-                let content = target.as_os_str().as_bytes();
+                let content = target.as_bytes();
                 let mut writer = self.repository().blob_writer(None)?;
                 writer.write_all(content)?;
                 let oid = writer.commit()?;
@@ -57,15 +57,15 @@ impl Database {
                     FileMode::Blob.into(),
                 )?;
                 while let Some(child_candidate) = entries.peek()? {
-                    if child_candidate.path.parent().unwrap() != entry.path {
+                    if &child_candidate.path.components()[.. child_candidate.path.components().len() - 1] != entry.path.components() {
                         break;
                     }
                     let child = entries.consume()?.unwrap();
-                    let child_name = child.path.strip_prefix(&entry.path)?;
+                    let child_name = child.path.components().last().unwrap();
                     let (child_mode, child_oid) =
                         self.plant_snapshot_inner(entries, &child, empty_blob_oid)?;
                     builder.insert(
-                        BulkTreeEntryName::Child(child_name.to_str().unwrap()).encode(),
+                        child_name.clone().to_child().encode(),
                         child_oid,
                         child_mode.into(),
                     )?;
@@ -83,7 +83,7 @@ impl Database {
         subject: &Path,
     ) -> Result<()> {
         self.unique_blobs(tree, |path, blob| {
-            let src = subject.join(path.join());
+            let src = subject.join(path.to_string());
             blob_store.store(blob, &src)?;
             Ok(())
         })?;

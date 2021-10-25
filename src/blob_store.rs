@@ -8,17 +8,18 @@ use sha2::{Sha256, Digest};
 use regex::bytes::Regex;
 use lazy_static::lazy_static;
 
-use crate::{RealBlob, Result};
+use crate::{BlobShadowContentSh256};
+use anyhow::{anyhow, Result};
 
 pub trait RealBlobStorage {
-    fn blob_path(&self, blob: &RealBlob) -> PathBuf;
-    fn store(&self, blob: &RealBlob, src: &Path) -> Result<()>;
+    fn blob_path(&self, blob: &BlobShadowContentSh256) -> PathBuf;
+    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()>;
 
-    fn have_blob(&self, blob: &RealBlob) -> bool {
+    fn have_blob(&self, blob: &BlobShadowContentSh256) -> bool {
         self.blob_path(blob).is_file()
     }
 
-    fn check_blob(&self, blob: &RealBlob) -> Result<()> {
+    fn check_blob(&self, blob: &BlobShadowContentSh256) -> Result<()> {
         check_sha256sum(blob, &self.blob_path(blob))
     }
 }
@@ -44,35 +45,35 @@ impl FilesystemRealBlobStorage {
         self.path.join("partial")
     }
 
-    fn blob_relative_path(blob: &RealBlob) -> (String, String) {
+    fn blob_relative_path(blob: &BlobShadowContentSh256) -> (String, String) {
         let mut hex = blob.to_hex();
         let child = hex.split_off(Self::SPLIT);
         (hex, child)
     }
 
-    fn blob_parent(&self, blob: &RealBlob) -> PathBuf {
+    fn blob_parent(&self, blob: &BlobShadowContentSh256) -> PathBuf {
         let (parent, _child) = Self::blob_relative_path(blob);
         self.blob_dir().join(&parent)
     }
 
-    fn partial_path(&self, blob: &RealBlob) -> PathBuf {
+    fn partial_path(&self, blob: &BlobShadowContentSh256) -> PathBuf {
         let (parent, child) = Self::blob_relative_path(blob);
         self.partial_dir().join(&parent).join(&child)
     }
 
-    fn partial_parent(&self, blob: &RealBlob) -> PathBuf {
+    fn partial_parent(&self, blob: &BlobShadowContentSh256) -> PathBuf {
         let (parent, _child) = Self::blob_relative_path(blob);
         self.partial_dir().join(&parent)
     }
 }
 
 impl RealBlobStorage for FilesystemRealBlobStorage {
-    fn blob_path(&self, blob: &RealBlob) -> PathBuf {
+    fn blob_path(&self, blob: &BlobShadowContentSh256) -> PathBuf {
         let (parent, child) = Self::blob_relative_path(blob);
         self.blob_dir().join(&parent).join(&child)
     }
 
-    fn store(&self, blob: &RealBlob, src: &Path) -> Result<()> {
+    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()> {
         if self.have_blob(blob) {
             return Ok(());
         }
@@ -133,17 +134,17 @@ impl MockRealBlobStorage {
 }
 
 impl RealBlobStorage for MockRealBlobStorage {
-    fn blob_path(&self, _: &RealBlob) -> PathBuf {
+    fn blob_path(&self, _: &BlobShadowContentSh256) -> PathBuf {
         self.token_blob_path.clone()
     }
 
-    fn store(&self, blob: &RealBlob, src: &Path) -> Result<()> {
+    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()> {
         check_sha256sum(blob, src)?;
         Ok(())
     }
 }
 
-pub fn sha256sum_coreutils(path: &Path) -> Result<RealBlob> {
+pub fn sha256sum_coreutils(path: &Path) -> Result<BlobShadowContentSh256> {
     lazy_static! {
         static ref RE: Regex =
             Regex::new(r"(?-u)(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
@@ -157,24 +158,24 @@ pub fn sha256sum_coreutils(path: &Path) -> Result<RealBlob> {
     output.status.exit_ok()?;
     // use std::os::unix::ffi::OsStrExt;
     // eprintln!("{:?}", std::ffi::OsStr::from_bytes(&output.stdout));
-    let caps = RE.captures(&output.stdout).ok_or("regex does not match")?;
-    Ok(RealBlob::from_hex(&caps["digest"])?)
+    let caps = RE.captures(&output.stdout).ok_or(anyhow!("regex does not match"))?;
+    Ok(std::str::from_utf8(&caps["digest"])?.parse()?)
 }
 
 #[allow(dead_code)]
-pub fn sha256sum_rust(path: &Path) -> Result<RealBlob> {
+pub fn sha256sum_rust(path: &Path) -> Result<BlobShadowContentSh256> {
     let mut file = OpenOptions::new().read(true).open(path)?;
     let mut hasher = Sha256::new();
     io::copy(&mut file, &mut hasher)?;
     let hash = hasher.finalize();
-    Ok(RealBlob::from_slice(&hash))
+    Ok(BlobShadowContentSh256::from_slice(&hash)?)
 }
 
-pub fn sha256sum(path: &Path) -> Result<RealBlob> {
+pub fn sha256sum(path: &Path) -> Result<BlobShadowContentSh256> {
     sha256sum_coreutils(path)
 }
 
-fn check_sha256sum(expected: &RealBlob, path: &Path) -> Result<()> {
+fn check_sha256sum(expected: &BlobShadowContentSh256, path: &Path) -> Result<()> {
     let observerd = sha256sum(path)?;
     assert_eq!(expected, &observerd);
     Ok(())

@@ -6,7 +6,9 @@ use std::{
     error::Error,
 };
 use clap::{App, ArgMatches, Arg, SubCommand};
-use crate::{Result};
+use anyhow::{Result, anyhow};
+
+use crate::{BulkPath};
 
 const ENV_GIT_DIR: &str = "GIT_DIR";
 const ENV_BLOB_STORE: &str = "BULK_BLOB_STORE";
@@ -28,7 +30,7 @@ pub enum Command {
     },
     Snapshot {
         subject: PathBuf,
-        relative_path: PathBuf,
+        relative_path: BulkPath,
     },
     Diff {
         tree_a: String,
@@ -36,7 +38,7 @@ pub enum Command {
     },
     Append {
         big_tree: String,
-        relative_path: PathBuf,
+        relative_path: BulkPath,
         mode: String,
         object: String,
     },
@@ -61,7 +63,7 @@ pub enum Command {
     AddToIndex {
         mode: String,
         tree: String,
-        relative_path: PathBuf,
+        relative_path: BulkPath,
     },
     Sha256Sum {
         path: PathBuf,
@@ -177,7 +179,7 @@ impl Args {
 
         let ensure_git_dir = || {
             if git_dir.is_none() {
-                Err(Box::<dyn Error>::from("missing '--git-dir'"))
+                Err(anyhow!("missing '--git-dir'"))
             } else {
                 Ok(())
             }
@@ -185,7 +187,7 @@ impl Args {
 
         let ensure_blob_store = || {
             if blob_store.is_none() {
-                Err(Box::<dyn Error>::from("missing '--blob-store'"))
+                Err(anyhow!("missing '--blob-store'"))
             } else {
                 Ok(())
             }

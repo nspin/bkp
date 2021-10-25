@@ -5,20 +5,21 @@ use std::{
     process::Command,
     os::unix::ffi::OsStrExt,
 };
-use regex::bytes::Regex;
+use regex::Regex;
 use lazy_static::lazy_static;
-use crate::{Result, RealBlob};
+use crate::{BlobShadowContentSh256, BulkPath};
+use anyhow::{anyhow, Result};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
 
-pub struct Snapshot {
-    path: PathBuf,
+pub struct Snapshot<'a> {
+    path: &'a Path,
 }
 
-impl Snapshot {
-    pub fn new(path: impl AsRef<Path>) -> Snapshot {
+impl<'a> Snapshot<'a> {
+    pub fn new(path: &'a Path) -> Snapshot {
         Self {
-            path: path.as_ref().to_path_buf(),
+            path,
         }
     }
 
@@ -60,14 +61,14 @@ impl Snapshot {
 
 #[derive(Clone, Debug)]
 pub struct SnapshotEntry {
-    pub path: PathBuf,
+    pub path: BulkPath,
     pub value: SnapshotEntryValue,
 }
 
 #[derive(Clone, Debug)]
 pub enum SnapshotEntryValue {
-    File { digest: RealBlob, executable: bool },
-    Link { target: PathBuf },
+    File { digest: BlobShadowContentSh256, executable: bool },
+    Link { target: String },
     Tree,
 }
 
@@ -86,18 +87,18 @@ impl<T: io::BufRead> SnapshotEntries<T> {
 
     pub fn next(&mut self) -> Result<Option<SnapshotEntry>> {
         while let Some(node_line) = self.nodes_entries.next()? {
-            let path = node_line.path.clone();
+            let path = node_line.path.parse()?;
             let value = match node_line.ty {
-                b'd' => SnapshotEntryValue::Tree,
-                b'f' => {
+                'd' => SnapshotEntryValue::Tree,
+                'f' => {
                     let digest_line = self.digests_entries.next()?.unwrap();
                     assert_eq!(node_line.path, digest_line.path);
                     SnapshotEntryValue::File {
-                        digest: digest_line.digest,
+                        digest: digest_line.digest.parse()?,
                         executable: node_line.is_executable(),
                     }
                 }
-                b'l' => SnapshotEntryValue::Link {
+                'l' => SnapshotEntryValue::Link {
                     target: node_line.target,
                 },
                 _ => {
@@ -134,10 +135,10 @@ impl<T: io::BufRead> BufferedSnapshotEntries<T> {
 
 #[derive(Debug)]
 struct NodesEntry {
-    ty: u8, // [dflcbsp]
+    ty: char, // [dflcbsp]
     mode: u16,
-    path: PathBuf,
-    target: PathBuf,
+    path: String,
+    target: String,
 }
 
 impl NodesEntry {
@@ -154,7 +155,7 @@ impl<T: io::BufRead> NodesEntries<T> {
     fn next(&mut self) -> Result<Option<NodesEntry>> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
-                r"(?-u)(?P<type>[dflcbsp]) (?P<mode>0[0-9]+) (?P<path>.*)\x00(?P<target>.*)\x00"
+                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{4}) (?P<path>.*)\x00(?P<target>.*)\x00"
             )
             .unwrap();
         }
@@ -164,20 +165,21 @@ impl<T: io::BufRead> NodesEntries<T> {
             return Ok(None);
         }
         let _ = self.reader.read_until(0, &mut buf)?;
-        let caps = RE.captures(&buf).ok_or("regex does not match")?;
+        let s = str::from_utf8(&buf)?;
+        let caps = RE.captures(s).ok_or(anyhow!("regex does not match"))?;
         Ok(Some(NodesEntry {
-            ty: caps["type"][0],
-            mode: str::from_utf8(&caps["mode"])?.parse()?,
-            path: Path::new(OsStr::from_bytes(&caps["path"])).to_path_buf(),
-            target: Path::new(OsStr::from_bytes(&caps["target"])).to_path_buf(),
+            ty: caps["type"].chars().nth(0).unwrap(),
+            mode: u16::from_str_radix(&caps["mode"], 8)?,
+            path: caps["path"].to_string(),
+            target: caps["target"].to_string(),
         }))
     }
 }
 
 #[derive(Debug)]
 struct DigestsEntry {
-    digest: RealBlob,
-    path: PathBuf,
+    digest: String,
+    path: String,
 }
 
 struct DigestsEntries<T> {
@@ -188,17 +190,18 @@ impl<T: io::BufRead> DigestsEntries<T> {
     fn next(&mut self) -> Result<Option<DigestsEntry>> {
         lazy_static! {
             static ref RE: Regex =
-                Regex::new(r"(?-u)(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
+                Regex::new(r"(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
         }
         let mut buf = vec![];
         let n = self.reader.read_until(0, &mut buf)?;
         if n == 0 {
             return Ok(None);
         }
-        let caps = RE.captures(&buf).ok_or("regex does not match")?;
+        let s = str::from_utf8(&buf)?;
+        let caps = RE.captures(s).ok_or(anyhow!("regex does not match"))?;
         Ok(Some(DigestsEntry {
-            digest: RealBlob::from_hex(&caps["digest"])?,
-            path: Path::new(OsStr::from_bytes(&caps["path"])).to_path_buf(),
+            digest: caps["digest"].to_string(),
+            path: caps["path"].to_string(),
         }))
     }
 }

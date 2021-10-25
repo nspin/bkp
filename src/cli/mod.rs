@@ -1,6 +1,7 @@
 use std::{path::PathBuf};
 use git2::{Repository, FileMode};
-use crate::{Result, Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
+use crate::{Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
+use anyhow::{Result};
 
 mod args;
 
@@ -54,11 +55,10 @@ impl Args {
                 subject,
                 relative_path,
             } => {
-                assert!(relative_path.to_str().unwrap().ends_with("/"));
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
                 let tmp: PathBuf = "tmp.snapshot".parse()?; // TODO
-                let snapshot = Snapshot::new(tmp);
+                let snapshot = Snapshot::new(&tmp);
                 log::info!(
                     "taking snapshot of {} to {}",
                     subject.display(),
@@ -70,20 +70,22 @@ impl Args {
                 log::info!("planted: {:06o},{}", u32::from(mode), tree);
                 log::info!("storing snapshot");
                 db.store_snapshot(&blob_store, tree, &subject)?;
-                log::info!("adding snapshot to index at {}", relative_path.display());
-                db.add_to_index(mode, tree, relative_path)?;
+                // log::info!("adding snapshot to index at {}", relative_path.display());
+                // db.add_to_index(mode, tree, relative_path)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;
                 let tree_a = db.resolve_treeish(&tree_a)?;
                 let tree_b = db.resolve_treeish(&tree_b)?;
                 db.diff(tree_a, tree_b, |side, path, entry| {
+                    let mut path = path.join("/");
+                    path.push_str(&entry.name);
                     println!(
                         "{} {:06o} {} {}",
                         side,
                         entry.mode,
                         &entry.oid,
-                        path.join().join(&entry.name).display()
+                        path,
                     );
                     Ok(())
                 })?;
@@ -106,7 +108,7 @@ impl Args {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;
                 db.unique_blobs(tree, |path, blob| {
-                    println!("{} {}", blob, path.join().display());
+                    println!("{} {}", blob, path);
                     Ok(())
                 })?;
             }
@@ -131,11 +133,11 @@ impl Args {
                 tree,
                 relative_path,
             } => {
-                assert!(relative_path.to_str().unwrap().ends_with("/"));
-                let db = self.database()?;
-                let tree = db.resolve_treeish(&tree)?;
-                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
-                db.add_to_index(FileMode::Tree, tree, relative_path)?;
+                // assert!(relative_path.to_str().unwrap().ends_with("/"));
+                // let db = self.database()?;
+                // let tree = db.resolve_treeish(&tree)?;
+                // assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
+                // db.add_to_index(FileMode::Tree, tree, relative_path)?;
             }
             Command::Sha256Sum { path } => {
                 let blob = sha256sum(path)?;

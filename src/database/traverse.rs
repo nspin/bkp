@@ -2,7 +2,8 @@ use std::{path::PathBuf, collections::BTreeSet};
 
 use git2::{Repository, Oid, ObjectType, FileMode};
 
-use crate::{Database, Result, RealBlob, BulkTreeEntryName, bail, ensure};
+use crate::{Database, BlobShadow, BlobShadowContentSh256, BulkTreeEntryName, BulkPath, BulkPathComponent};
+use anyhow::{Result, bail, ensure};
 
 impl Database {
     pub fn traverser<'a, T: TraversalCallbacks>(
@@ -35,15 +36,15 @@ impl Database {
     pub fn unique_blobs(
         &self,
         tree: Oid,
-        callback: impl FnMut(&Location, &RealBlob) -> Result<()>,
+        callback: impl FnMut(&BulkPath, &BlobShadowContentSh256) -> Result<()>,
     ) -> Result<()> {
         struct UniqueBlobsCallbacks<T> {
             callback: T,
         }
-        impl<T: FnMut(&Location, &RealBlob) -> Result<()>> TraversalCallbacks for UniqueBlobsCallbacks<T> {
+        impl<T: FnMut(&BulkPath, &BlobShadowContentSh256) -> Result<()>> TraversalCallbacks for UniqueBlobsCallbacks<T> {
             fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
                 let st_blob = blob.read_blob()?;
-                (self.callback)(blob.path, &st_blob)?;
+                (self.callback)(blob.path, st_blob.content_hash())?;
                 Ok(())
             }
         }
@@ -108,7 +109,7 @@ impl<T: TraversalCallbacks> TraversalCallbacks for OnUnique<T> {
 
 pub struct Visit<'a, T> {
     repository: &'a Repository,
-    path: &'a Location,
+    path: &'a BulkPath,
     oid: Oid,
     extra: T,
 }
@@ -130,7 +131,7 @@ impl<'a, T> Visit<'a, T> {
         self.oid
     }
 
-    pub fn path(&self) -> &Location {
+    pub fn path(&self) -> &BulkPath {
         self.path
     }
 }
@@ -140,9 +141,9 @@ impl<'a> Visit<'a, VisitBlob> {
         self.extra.executable
     }
 
-    pub fn read_blob(&self) -> Result<RealBlob> {
+    pub fn read_blob(&self) -> Result<BlobShadow> {
         let blob = self.repository.find_blob(self.oid)?;
-        Ok(RealBlob::from_shadow_file_content(blob.content())?)
+        Ok(BlobShadow::from_bytes(blob.content())?)
     }
 }
 
@@ -150,35 +151,6 @@ impl<'a> Visit<'a, VisitLink> {
     pub fn read_link(&self) -> Result<Vec<u8>> {
         let blob = self.repository.find_blob(self.oid)?;
         Ok(blob.content().to_vec())
-    }
-}
-
-#[derive(Debug)]
-pub struct Location(Vec<String>);
-
-impl Location {
-    pub fn new() -> Self {
-        Self(vec![])
-    }
-
-    pub fn segments(&self) -> &[String] {
-        &self.0
-    }
-
-    pub fn push(&mut self, seg: String) {
-        self.0.push(seg);
-    }
-
-    pub fn pop(&mut self) {
-        self.0.pop();
-    }
-
-    pub fn join(&self) -> PathBuf {
-        let mut path = PathBuf::new();
-        for seg in &self.0 {
-            path.push(seg);
-        }
-        path
     }
 }
 
@@ -200,10 +172,10 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
     }
 
     pub fn traverse(&mut self, tree: Oid) -> Result<()> {
-        self.traverse_from(&mut Location::new(), tree)
+        self.traverse_from(&mut BulkPath::new(), tree)
     }
 
-    pub fn traverse_from(&mut self, path: &mut Location, tree: Oid) -> Result<()> {
+    pub fn traverse_from(&mut self, path: &mut BulkPath, tree: Oid) -> Result<()> {
         if let VisitTreeDecision::Skip = self.callbacks.on_tree(&Visit {
             repository: self.repository,
             path: &path,
@@ -232,7 +204,7 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
             }
 
             let name = name.child().unwrap();
-            path.push(name.to_string());
+            path.push(name.clone());
             match kind {
                 ObjectType::Blob => {
                     if mode == FileMode::Link.into() {

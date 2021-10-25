@@ -6,7 +6,8 @@ use std::{
 };
 use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
 
-use crate::{Result, BulkTreeEntryName, Database, Location};
+use crate::{Database};
+use anyhow::{Result};
 
 pub enum Side {
     A,
@@ -50,12 +51,12 @@ impl Database {
         &self,
         tree_a: Oid,
         tree_b: Oid,
-        callback: impl FnMut(&Side, &Location, &SimpleEntry) -> Result<()>,
+        callback: impl FnMut(&Side, &[String], &SimpleEntry) -> Result<()>,
     ) -> Result<()> {
         let mut differ = Differ {
             repository: &self.repository,
             callback,
-            path: Location::new(),
+            path: Vec::new(),
         };
         differ.diff_inner(tree_a, tree_b)
     }
@@ -64,10 +65,10 @@ impl Database {
 struct Differ<'a, T> {
     repository: &'a Repository,
     callback: T,
-    path: Location,
+    path: Vec<String>,
 }
 
-impl<'a, T: FnMut(&Side, &Location, &SimpleEntry) -> Result<()>> Differ<'a, T> {
+impl<'a, T: FnMut(&Side, &[String], &SimpleEntry) -> Result<()>> Differ<'a, T> {
     fn diff_inner(&mut self, tree_a: Oid, tree_b: Oid) -> Result<()> {
         let tree_a = self.repository.find_tree(tree_a)?;
         let tree_b = self.repository.find_tree(tree_b)?;

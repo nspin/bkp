@@ -1,24 +1,30 @@
 #![feature(exit_status_error)]
+#![feature(iter_intersperse)]
+#![allow(unused_imports)]
 
-pub use error::{Result};
-pub use entry::BulkTreeEntryName;
-pub use blob::RealBlob;
+pub use paths::{
+    BulkTreeEntryName, EncodedBulkPath,
+    BulkPathComponent, BulkPath,
+};
+pub use blob::{
+    BlobShadow,
+    BlobShadowContentSh256,
+};
 pub use blob_store::{RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage, sha256sum};
 pub use snapshot::{
     Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BufferedSnapshotEntries,
 };
 pub use database::{
-    Database, TraversalCallbacks, Traverser, Location, Visit, VisitBlob, VisitLink, VisitTree,
+    Database,
+    TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree,
     VisitTreeDecision,
 };
 pub use cli::cli_main;
 
-mod error;
-mod entry;
+mod paths;
 mod blob;
 mod blob_store;
 mod snapshot;
 mod database;
+mod fs;
 mod cli;
-
-pub mod fs;

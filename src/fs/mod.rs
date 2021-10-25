@@ -2,7 +2,8 @@ use std::{path::Path};
 use git2::Oid;
 use fuser::MountOption;
 
-use crate::{Database, RealBlobStorage, Result};
+use anyhow::Result;
+use crate::{Database, RealBlobStorage};
 
 use fs::DatabaseFilesystem;
 

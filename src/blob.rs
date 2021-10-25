@@ -4,59 +4,140 @@ use std::{
     fs::{File, OpenOptions},
     error::Error,
     io::Read,
+    str,
+    num::ParseIntError,
 };
+use std::str::FromStr;
+use std::str::Utf8Error;
 
-use crate::bail;
+use thiserror::Error;
 
-#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub struct RealBlob {
-    digest: [u8; Self::DIGEST_SIZE],
+#[derive(Error, Debug)]
+pub enum BlobShadowError {
+    #[error("malformed")]
+    MalformedBlobShadow,
+    #[error("error converting from utf-8: {0}")]
+    Utf8Error(#[source] #[from] Utf8Error),
+    #[error("malformed content hash length")]
+    MalformedBlobShadowContentHashLength,
+    #[error("malformed content hash hex: {0}")]
+    MalformedBlobShadowContentHashHex(#[source] hex::FromHexError),
+    #[error("malformed size")]
+    MalformedBlobShadowSize(#[source] ParseIntError),
 }
 
-impl RealBlob {
-    const DIGEST_SIZE: usize = 32;
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+pub struct BlobShadowContentSh256 {
+    digest: [u8; Self::SHA256_DIGEST_SIZE],
+}
 
-    pub fn new(digest: [u8; Self::DIGEST_SIZE]) -> Self {
+impl BlobShadowContentSh256 {
+    const SHA256_DIGEST_SIZE: usize = 32;
+
+    pub fn new(digest: [u8; Self::SHA256_DIGEST_SIZE]) -> Self {
         Self { digest }
     }
 
-    pub fn from_slice(digest: &[u8]) -> Self {
-        let mut arr = [0; Self::DIGEST_SIZE];
+    pub fn from_slice(digest: &[u8]) -> Result<Self, BlobShadowError> {
+        if digest.len() != Self::SHA256_DIGEST_SIZE {
+            return Err(BlobShadowError::MalformedBlobShadowContentHashLength);
+        }
+        let mut arr = [0; Self::SHA256_DIGEST_SIZE];
         arr.copy_from_slice(digest);
-        Self::new(arr)
+        Ok(Self::new(arr))
     }
 
     pub fn to_hex(&self) -> String {
-        hex::encode(self.digest)
+        self.to_string()
     }
 
-    pub fn from_hex(s: impl AsRef<[u8]>) -> Result<Self, Box<dyn Error>> {
-        let mut digest = [0; Self::DIGEST_SIZE];
-        hex::decode_to_slice(s, &mut digest)?;
-        Ok(Self::new(digest))
-    }
-
-    pub fn from_shadow_file_content(content: &[u8]) -> Result<Self, Box<dyn Error>> {
-        if content[content.len() - 1] != b'\n' {
-            bail!("malformed shadow blob file");
-        }
-        Self::from_hex(&content[..(content.len() - 1)])
-    }
-
-    pub fn from_shadow_file(file: &mut File) -> Result<Self, Box<dyn Error>> {
-        let mut buf = vec![];
-        file.read_to_end(&mut buf)?;
-        Self::from_shadow_file_content(&buf)
-    }
-
-    pub fn from_shadow_path(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
-        let mut file = OpenOptions::new().read(true).open(path)?;
-        Self::from_shadow_file(&mut file)
+    pub fn from_hex(s: &str) -> Result<Self, BlobShadowError> {
+        Self::from_str(s)
     }
 }
 
-impl fmt::Display for RealBlob {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "{}", self.to_hex())
+impl fmt::Display for BlobShadowContentSh256 {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", hex::encode(self.digest))
+    }
+}
+
+impl FromStr for BlobShadowContentSh256 {
+    type Err = BlobShadowError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut digest = [0; Self::SHA256_DIGEST_SIZE];
+        hex::decode_to_slice(s, &mut digest).map_err(BlobShadowError::MalformedBlobShadowContentHashHex)?;
+        Ok(Self::new(digest))
+    }
+}
+
+pub struct BlobShadow {
+    content_hash: BlobShadowContentSh256,
+    size: u64,
+}
+
+impl BlobShadow {
+    pub fn new(content_hash: BlobShadowContentSh256, size: u64) -> Self {
+        Self {
+            content_hash,
+            size,
+        }
+    }
+
+    pub fn from_bytes(shadow_content: &[u8]) -> Result<Self, BlobShadowError> {
+        let s = str::from_utf8(shadow_content).map_err(BlobShadowError::Utf8Error)?;
+        s.parse()
+    }
+
+    pub fn content_hash(&self) -> &BlobShadowContentSh256 {
+        &self.content_hash
+    }
+
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+}
+
+impl fmt::Display for BlobShadow {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "sha256 {}\nsize {}\n", self.content_hash, self.size)
+    }
+}
+
+impl FromStr for BlobShadow {
+    type Err = BlobShadowError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut it = s.split('\n');
+        let content_hash = {
+            let line = it.next().ok_or(Self::Err::MalformedBlobShadow)?;
+            if let Some(("sha256", value)) = line.split_once(' ') {
+                value.parse()?
+            } else {
+                return Err(Self::Err::MalformedBlobShadow)
+            }
+        };
+        let size = {
+            let line = it.next().ok_or(Self::Err::MalformedBlobShadow)?;
+            if let Some(("size", value)) = line.split_once(' ') {
+                value.parse().map_err(Self::Err::MalformedBlobShadowSize)?
+            } else {
+                return Err(Self::Err::MalformedBlobShadow)
+            }
+        };
+        {
+            let line = it.next().ok_or(Self::Err::MalformedBlobShadow)?;
+            if !line.is_empty() {
+                return Err(Self::Err::MalformedBlobShadow);
+            }
+        }
+        if let None = it.next() {
+            Err(Self::Err::MalformedBlobShadow)
+        } else {
+            Ok(Self {
+                size, content_hash,
+            })
+        }
     }
 }

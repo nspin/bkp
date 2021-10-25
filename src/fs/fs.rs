@@ -16,8 +16,8 @@ use fuser::{
     ReplyOpen, ReplyEmpty,
 };
 
-use crate::{bail, ensure};
-use crate::{RealBlobStorage, Result, RealBlob, BulkTreeEntryName};
+use anyhow::{bail, ensure, Result};
+use crate::{RealBlobStorage, BlobShadow, BlobShadowContentSh256, BulkPathComponent, BulkTreeEntryName};
 
 const TTL: Duration = Duration::from_secs(1);
 
@@ -109,9 +109,8 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
                 let kind = FileType::RegularFile;
                 let perm = 0o555 | (if *executable { 0o000 } else { 0o111 });
                 let blob = self.repository.find_blob(oid.clone())?;
-                let blob = RealBlob::from_shadow_file_content(blob.content())?;
-                let blob_path = self.blob_store.blob_path(&blob);
-                let size = blob_path.metadata()?.len();
+                let blob = BlobShadow::from_bytes(blob.content())?;
+                let size = blob.size();
                 (kind, perm, size)
             }
             InodeEntry::Link { oid } => {
@@ -156,8 +155,8 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
             _ => bail!(""),
         };
         let blob = self.repository.find_blob(oid.clone())?;
-        let blob = RealBlob::from_shadow_file_content(blob.content())?;
-        let blob_path = self.blob_store.blob_path(&blob);
+        let blob = BlobShadow::from_bytes(blob.content())?;
+        let blob_path = self.blob_store.blob_path(&blob.content_hash());
         let file = OpenOptions::new().read(true).open(blob_path)?;
         self.file_handles.insert(ino, file);
         Ok(())
@@ -181,7 +180,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             }
         );
         let tree = self.repository.find_tree(oid.clone()).unwrap();
-        let entry_name = BulkTreeEntryName::Child(name.to_str().unwrap()).encode();
+        let entry_name = name.to_str().unwrap().parse::<BulkPathComponent>().unwrap().to_child().encode();
         for (i, entry) in tree.iter().enumerate() {
             if entry.name().unwrap() == entry_name {
                 let ino = match self.family_tree.get(&(parent, i)) {
