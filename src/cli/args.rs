@@ -199,6 +199,7 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("mount") {
             ensure_git_dir()?;
+            ensure_blob_store()?;
             Command::Mount {
                 mountpoint: submatches.value_of("MOUNTPOINT").unwrap().parse()?,
                 tree: submatches.value_of("TREE").unwrap().to_string(),
@@ -276,21 +277,20 @@ fn path_from_env(var: &str) -> Option<PathBuf> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
-    fn run(f: impl FnOnce() -> Result<()>) {
-        f().unwrap_or_else(|err| {
-            println!("{}", err);
-            panic!()
-        })
-    }
-
     #[test]
-    fn x() {
-        run(|| {
-            Args::get_from(vec!["", "--git-dir", "./x", "mount", "./mnt"])?;
-            Ok(())
-        })
+    fn parse() {
+        Args::get_from(vec![
+            "",
+            "--git-dir",
+            "x/y",
+            "--blob-store",
+            "y/x",
+            "mount",
+            "a/b/c",
+        ])
+        .unwrap();
     }
 }

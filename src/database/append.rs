@@ -11,7 +11,13 @@ impl Database {
         mode: FileMode,
         object: Oid,
     ) -> Result<Oid> {
-        self.append_inner(self.empty_blob_oid()?, big_tree, path.components(), mode.into(), object)
+        self.append_inner(
+            self.empty_blob_oid()?,
+            big_tree,
+            path.components(),
+            mode.into(),
+            object,
+        )
     }
 
     fn append_inner(

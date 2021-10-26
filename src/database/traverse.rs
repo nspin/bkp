@@ -1,5 +1,5 @@
-use std::str;
 use std::collections::BTreeSet;
+use std::str;
 
 use anyhow::{bail, ensure, Result};
 use git2::{FileMode, ObjectType, Oid, Repository};
