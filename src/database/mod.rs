@@ -11,6 +11,7 @@ mod traverse;
 mod snapshot;
 mod diff;
 mod append;
+mod fs;
 
 pub use traverse::{
     TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree,

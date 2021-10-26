@@ -26,5 +26,4 @@ mod blob;
 mod blob_store;
 mod snapshot;
 mod database;
-mod fs;
 mod cli;
