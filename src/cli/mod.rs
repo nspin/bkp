@@ -68,8 +68,8 @@ impl Args {
                 log::info!("planted: {:06o},{}", u32::from(mode), tree);
                 log::info!("storing snapshot");
                 db.store_snapshot(&blob_store, tree, &subject)?;
-                // log::info!("adding snapshot to index at {}", relative_path.display());
-                // db.add_to_index(mode, tree, relative_path)?;
+                log::info!("adding snapshot to index at {}", relative_path);
+                db.add_to_index(mode, tree, relative_path)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;
@@ -130,11 +130,10 @@ impl Args {
                 tree,
                 relative_path,
             } => {
-                // assert!(relative_path.to_str().unwrap().ends_with("/"));
-                // let db = self.database()?;
-                // let tree = db.resolve_treeish(&tree)?;
-                // assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
-                // db.add_to_index(FileMode::Tree, tree, relative_path)?;
+                let db = self.database()?;
+                let tree = db.resolve_treeish(&tree)?;
+                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
+                db.add_to_index(FileMode::Tree, tree, relative_path)?;
             }
             Command::Sha256Sum { path } => {
                 let blob = sha256sum(path)?;
