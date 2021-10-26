@@ -175,7 +175,7 @@ pub enum BulkPathError {
 pub enum BulkEncodedPathError {
     #[error("missing prefix")]
     MissingPrefix,
-    #[error("invalid component")]
+    #[error("malformed component")]
     BulkPathError(#[source] #[from] BulkPathError),
 }
 
@@ -196,7 +196,35 @@ mod tests {
     }
 
     #[test]
-    fn test() {
+    fn component() {
         ensure_err::<BulkPathComponent>(".");
+        ensure_err::<BulkPathComponent>("..");
+        ensure_err::<BulkPathComponent>("");
+        ensure_err::<BulkPathComponent>("x/y");
+        ensure_err::<BulkPathComponent>("x\0y");
+        ensure_inverse::<BulkPathComponent>("abc");
+    }
+
+    #[test]
+    fn path() {
+        ensure_err::<BulkPath>("/x/y");
+        ensure_err::<BulkPath>("x/y/");
+        ensure_err::<BulkPath>("x//y"); // TODO support
+        ensure_err::<BulkPath>(""); // TODO support
+        ensure_inverse::<BulkPath>("abc");
+        ensure_inverse::<BulkPath>("x/y");
+    }
+
+    #[test]
+    fn encoding() {
+        assert_eq!(BulkPath::from_str("x/y").unwrap().encode(), "0_x/0_y");
+        assert_eq!(BulkPath::from_str("x/y").unwrap().encode_marker(), "0_x/0_y/0");
+    }
+
+    #[test]
+    fn decode() {
+        assert!(BulkTreeEntryName::decode("xy").is_err());
+        matches!(BulkTreeEntryName::decode("0").unwrap(), BulkTreeEntryName::Marker);
+        assert_eq!(BulkTreeEntryName::decode("0_x").unwrap().child().unwrap().to_string(), "x");
     }
 }
