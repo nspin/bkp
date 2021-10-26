@@ -1,6 +1,8 @@
+use std::str;
+use std::collections::BTreeSet;
+
 use anyhow::{bail, ensure, Result};
 use git2::{FileMode, ObjectType, Oid, Repository};
-use std::collections::BTreeSet;
 
 use crate::{BlobShadow, BlobShadowContentSh256, BulkPath, BulkTreeEntryName, Database};
 
@@ -149,9 +151,9 @@ impl<'a> Visit<'a, VisitBlob> {
 }
 
 impl<'a> Visit<'a, VisitLink> {
-    pub fn read_link(&self) -> Result<Vec<u8>> {
+    pub fn read_link(&self) -> Result<String> {
         let blob = self.repository.find_blob(self.oid)?;
-        Ok(blob.content().to_vec())
+        Ok(str::from_utf8(blob.content())?.to_owned())
     }
 }
 
