@@ -59,7 +59,7 @@ impl BulkPath {
         self.0.pop()
     }
 
-    pub fn encode(self) -> String {
+    pub fn encode(&self) -> String {
         self.components()
             .iter()
             .map(BulkTreeEntryName::encode_child)
@@ -67,7 +67,7 @@ impl BulkPath {
             .collect()
     }
 
-    pub fn encode_marker(self) -> String {
+    pub fn encode_marker(&self) -> String {
         self.components()
             .iter()
             .map(BulkTreeEntryName::encode_child)
