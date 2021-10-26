@@ -5,8 +5,8 @@ use git2::{Oid, FileMode};
 use anyhow::Result;
 
 use crate::{
-    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries,
-    BulkTreeEntryName, RealBlobStorage,
+    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BulkTreeEntryName,
+    RealBlobStorage,
 };
 
 impl Database {

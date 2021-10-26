@@ -4,7 +4,6 @@ use anyhow::Result;
 use crate::{BulkPath, Database};
 
 impl Database {
-
     fn add_to_index_unchecked(
         &self,
         mode: FileMode,
@@ -30,8 +29,14 @@ impl Database {
     pub fn add_to_index(&self, mode: FileMode, tree: Oid, relative_path: &BulkPath) -> Result<()> {
         let empty_blob_oid = self.empty_blob_oid()?;
         let mut ancestor = BulkPath::new();
-        for component in relative_path.components() { // hack around edge case
-            self.add_to_index_unchecked(FileMode::Blob, empty_blob_oid, &ancestor.encode_marker(), false)?;
+        for component in relative_path.components() {
+            // hack around edge case
+            self.add_to_index_unchecked(
+                FileMode::Blob,
+                empty_blob_oid,
+                &ancestor.encode_marker(),
+                false,
+            )?;
             ancestor.push(component.clone());
         }
         self.add_to_index_unchecked(mode, tree, &relative_path.encode(), true)

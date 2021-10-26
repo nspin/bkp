@@ -13,8 +13,7 @@ use libc::{EINVAL, ENOENT};
 use git2::{Repository, Oid, ObjectType, FileMode, TreeEntry};
 use fuser::{
     FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr, ReplyDirectory,
-    ReplyOpen, ReplyEmpty,
-    MountOption,
+    ReplyOpen, ReplyEmpty, MountOption,
 };
 use anyhow::{bail, ensure, Result};
 
