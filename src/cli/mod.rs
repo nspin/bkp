@@ -13,16 +13,9 @@ mod args;
 use args::{Args, Command};
 
 pub fn cli_main() -> Result<()> {
-    let args = Args::get().unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        panic!()
-    });
+    let args = Args::get()?;
     args.apply_verbosity();
-    args.run_command().unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        panic!()
-    });
-    Ok(())
+    args.run_command()
 }
 
 impl Args {

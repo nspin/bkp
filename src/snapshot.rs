@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Error, Result, Context};
 use fallible_iterator::FallibleIterator;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -89,7 +89,7 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
 
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         while let Some(node_line) = self.nodes_entries.next()? {
-            let path = node_line.path.parse()?;
+            let path = node_line.path.parse().context(format!("{:?}", node_line))?;
             let value = match node_line.ty {
                 'd' => SnapshotEntryValue::Tree,
                 'l' => SnapshotEntryValue::Link {
@@ -140,7 +140,7 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
-                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{4}) (?P<size>[0-9]+) (?P<path>.*)\x00(?P<target>.*)\x00"
+                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{3}[0-9]*) (?P<size>[0-9]+) (?P<path>.*)\x00(?P<target>.*)\x00"
             )
             .unwrap();
         }

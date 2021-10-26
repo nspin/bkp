@@ -90,10 +90,13 @@ impl FromStr for BulkPath {
     type Err = BulkPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.split('/')
-            .map(BulkPathComponent::from_str)
-            .collect::<Result<Vec<BulkPathComponent>, Self::Err>>()
-            .map(Self)
+        Ok(Self(if s.is_empty() {
+            vec![]
+        } else {
+            s.split('/')
+                .map(BulkPathComponent::from_str)
+                .collect::<Result<Vec<BulkPathComponent>, Self::Err>>()?
+        }))
     }
 }
 
@@ -222,7 +225,7 @@ mod tests {
         ensure_err::<BulkPath>("/x/y");
         ensure_err::<BulkPath>("x/y/");
         ensure_err::<BulkPath>("x//y"); // TODO support
-        ensure_err::<BulkPath>(""); // TODO support
+        ensure_inverse::<BulkPath>("");
         ensure_inverse::<BulkPath>("abc");
         ensure_inverse::<BulkPath>("x/y");
     }
