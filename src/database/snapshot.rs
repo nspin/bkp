@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::io::{self, Write};
+
 use fallible_iterator::{FallibleIterator, Peekable};
 use git2::{Oid, FileMode};
 use anyhow::Result;

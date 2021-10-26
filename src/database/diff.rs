@@ -1,9 +1,10 @@
 use std::cmp::Ordering;
 use std::fmt;
-use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
-use anyhow::{Result};
 
-use crate::{Database};
+use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
+use anyhow::Result;
+
+use crate::Database;
 
 pub enum Side {
     A,

@@ -9,8 +9,9 @@ use std::os::unix::ffi::OsStrExt;
 use regex::Regex;
 use lazy_static::lazy_static;
 use fallible_iterator::FallibleIterator;
-use crate::{BlobShadow, BulkPath};
 use anyhow::{anyhow, Error, Result};
+
+use crate::{BlobShadow, BulkPath};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
 

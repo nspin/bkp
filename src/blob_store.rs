@@ -1,15 +1,14 @@
-use std::{
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-    fs::{self, OpenOptions},
-    io,
-};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::fs::{self, OpenOptions};
+use std::io;
+
 use sha2::{Sha256, Digest};
 use regex::bytes::Regex;
 use lazy_static::lazy_static;
+use anyhow::{anyhow, Result};
 
 use crate::{BlobShadowContentSh256};
-use anyhow::{anyhow, Result};
 
 pub trait RealBlobStorage {
     fn blob_path(&self, blob: &BlobShadowContentSh256) -> PathBuf;

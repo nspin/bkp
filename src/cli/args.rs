@@ -1,10 +1,9 @@
-use std::{
-    env,
-    ffi::OsString,
-    path::{Path, PathBuf},
-    string::ToString,
-    error::Error,
-};
+use std::env;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::string::ToString;
+use std::error::Error;
+
 use clap::{App, ArgMatches, Arg, SubCommand};
 use anyhow::{Result, anyhow};
 
