@@ -1,23 +1,51 @@
-use std::{
-    ffi::OsStr,
-    time::{Duration, UNIX_EPOCH},
-    fs::{File, OpenOptions},
-    collections::BTreeMap,
-    iter::{FromIterator, IntoIterator},
-    os::unix::io::AsRawFd,
-    convert::{TryFrom, TryInto},
-    error::Error,
-};
+use std::ffi::OsStr;
+use std::time::{Duration, UNIX_EPOCH};
+use std::fs::{File, OpenOptions};
+use std::collections::BTreeMap;
+use std::iter::{FromIterator, IntoIterator};
+use std::os::unix::io::AsRawFd;
+use std::convert::{TryFrom, TryInto};
+use std::error::Error;
+use std::path::Path;
+
 use log::error;
 use libc::{EINVAL, ENOENT};
 use git2::{Repository, Oid, ObjectType, FileMode, TreeEntry};
 use fuser::{
     FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr, ReplyDirectory,
     ReplyOpen, ReplyEmpty,
+    MountOption,
 };
-
 use anyhow::{bail, ensure, Result};
-use crate::{RealBlobStorage, BlobShadow, BulkPathComponent, BulkTreeEntryName};
+
+use crate::{Database, RealBlobStorage, BlobShadow, BulkPathComponent, BulkTreeEntryName};
+
+const FS_NAME: &str = "st";
+
+impl Database {
+    pub fn mount(
+        &self,
+        tree: Oid,
+        mountpoint: impl AsRef<Path>,
+        blob_store: impl RealBlobStorage,
+    ) -> Result<()> {
+        let options = &[
+            MountOption::RO,
+            MountOption::NoDev,
+            MountOption::NoExec,
+            MountOption::NoAtime,
+            MountOption::Sync,
+            MountOption::DirSync,
+            MountOption::FSName(FS_NAME.to_string()),
+            // TODO
+            // MountOption::AutoUnmount,
+            MountOption::CUSTOM("auto_unmount".to_string()),
+        ];
+        let fs = DatabaseFilesystem::new(self.repository(), tree, blob_store);
+        fuser::mount2(fs, mountpoint, options)?;
+        Ok(())
+    }
+}
 
 const TTL: Duration = Duration::from_secs(1);
 
