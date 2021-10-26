@@ -59,9 +59,9 @@ impl FromStr for BlobShadow {
             return Err(Self::Err::MalformedBlobShadow);
         }
         if let None = it.next() {
-            Err(Self::Err::MalformedBlobShadow)
-        } else {
             Ok(Self { size, content_hash })
+        } else {
+            Err(Self::Err::MalformedBlobShadow)
         }
     }
 }
@@ -126,4 +126,39 @@ pub enum BlobShadowError {
     MalformedBlobShadowContentHashHex(#[source] hex::FromHexError),
     #[error("malformed size")]
     MalformedBlobShadowSize(#[source] ParseIntError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ensure_err<T: FromStr>(s: &str) {
+        assert!(T::from_str(s).is_err());
+    }
+
+    fn ensure_inverse<T: FromStr + ToString>(s: &str)
+    where
+        <T as FromStr>::Err: fmt::Debug,
+    {
+        assert_eq!(T::from_str(s).unwrap().to_string(), s);
+    }
+
+    const TEST_HEX_DIGEST: &str = "da60ed9cad3849231c91f0419c8eb59d10d0ccf3fdfa7341fa6f657b684ba1cf";
+
+    #[test]
+    fn shadow_content_sha256() {
+        ensure_err::<BlobShadowContentSh256>("");
+        ensure_err::<BlobShadowContentSh256>(&format!(" {}", TEST_HEX_DIGEST));
+        ensure_err::<BlobShadowContentSh256>(&format!("{}0", TEST_HEX_DIGEST));
+        ensure_inverse::<BlobShadowContentSh256>(TEST_HEX_DIGEST);
+    }
+
+    #[test]
+    fn shadow() {
+        ensure_err::<BlobShadow>("");
+        ensure_err::<BlobShadow>(&format!("sha256 {}\nsize 123", TEST_HEX_DIGEST));
+        ensure_err::<BlobShadow>(&format!("sha256 {}\nsize \n", TEST_HEX_DIGEST));
+        ensure_err::<BlobShadow>(&format!("sha256 {}\r\nsize 123\r\n", TEST_HEX_DIGEST));
+        ensure_inverse::<BlobShadow>(&format!("sha256 {}\nsize 123\n", TEST_HEX_DIGEST));
+    }
 }
