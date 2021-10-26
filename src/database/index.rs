@@ -30,7 +30,6 @@ impl Database {
         let empty_blob_oid = self.empty_blob_oid()?;
         let mut ancestor = BulkPath::new();
         for component in relative_path.components() {
-            // hack around edge case
             self.add_to_index_unchecked(
                 FileMode::Blob,
                 empty_blob_oid,
