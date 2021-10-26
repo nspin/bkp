@@ -1,13 +1,7 @@
-use std::{
-    process::Command,
-    path::{Path, PathBuf, Component},
-    cmp::Ordering,
-    fmt,
-};
-use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
+use git2::{Oid, FileMode};
+use anyhow::Result;
 
 use crate::{BulkTreeEntryName, BulkPath, BulkPathComponent, Database};
-use anyhow::{Result};
 
 impl Database {
     pub fn append(

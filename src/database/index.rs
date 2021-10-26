@@ -1,0 +1,39 @@
+use git2::{Oid, FileMode};
+use anyhow::Result;
+
+use crate::{BulkPath, Database};
+
+impl Database {
+
+    fn add_to_index_unchecked(
+        &self,
+        mode: FileMode,
+        tree: Oid,
+        path: &str,
+        add_trailing_slash: bool,
+    ) -> Result<()> {
+        let trailing_slash = if add_trailing_slash { "/" } else { "" };
+        self.invoke_git(&[
+            "update-index".to_string(),
+            "--add".to_string(),
+            "--cacheinfo".to_string(),
+            format!(
+                "{:06o},{},{}{}",
+                u32::from(mode),
+                tree,
+                path,
+                trailing_slash
+            ),
+        ])
+    }
+
+    pub fn add_to_index(&self, mode: FileMode, tree: Oid, relative_path: &BulkPath) -> Result<()> {
+        let empty_blob_oid = self.empty_blob_oid()?;
+        let mut ancestor = BulkPath::new();
+        for component in relative_path.components() { // hack around edge case
+            self.add_to_index_unchecked(FileMode::Blob, empty_blob_oid, &ancestor.encode_marker(), false)?;
+            ancestor.push(component.clone());
+        }
+        self.add_to_index_unchecked(mode, tree, &relative_path.encode(), true)
+    }
+}

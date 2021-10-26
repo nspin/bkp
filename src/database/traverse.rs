@@ -1,11 +1,10 @@
-use std::{path::PathBuf, collections::BTreeSet};
-
+use std::collections::BTreeSet;
 use git2::{Repository, Oid, ObjectType, FileMode};
+use anyhow::{Result, bail, ensure};
 
 use crate::{
-    Database, BlobShadow, BlobShadowContentSh256, BulkTreeEntryName, BulkPath, BulkPathComponent,
+    Database, BlobShadow, BlobShadowContentSh256, BulkTreeEntryName, BulkPath,
 };
-use anyhow::{Result, bail, ensure};
 
 impl Database {
     pub fn traverser<'a, T: TraversalCallbacks>(

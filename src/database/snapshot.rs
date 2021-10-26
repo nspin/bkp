@@ -1,13 +1,11 @@
-use std::{
-    path::{Path, PathBuf},
-    io::{self, Write},
-    os::unix::ffi::OsStrExt,
-};
-use git2::{Oid, FileMode};
+use std::path::Path;
+use std::io::{self, Write};
 use fallible_iterator::{FallibleIterator, Peekable};
+use git2::{Oid, FileMode};
 use anyhow::Result;
+
 use crate::{
-    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BulkPathComponent,
+    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries,
     BulkTreeEntryName, RealBlobStorage,
 };
 

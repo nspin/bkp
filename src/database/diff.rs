@@ -1,13 +1,9 @@
-use std::{
-    process::Command,
-    path::{Path, PathBuf},
-    cmp::Ordering,
-    fmt,
-};
+use std::cmp::Ordering;
+use std::fmt;
 use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
+use anyhow::{Result};
 
 use crate::{Database};
-use anyhow::{Result};
 
 pub enum Side {
     A,

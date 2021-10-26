@@ -17,7 +17,7 @@ use fuser::{
 };
 
 use anyhow::{bail, ensure, Result};
-use crate::{RealBlobStorage, BlobShadow, BlobShadowContentSh256, BulkPathComponent, BulkTreeEntryName};
+use crate::{RealBlobStorage, BlobShadow, BulkPathComponent, BulkTreeEntryName};
 
 const TTL: Duration = Duration::from_secs(1);
 
