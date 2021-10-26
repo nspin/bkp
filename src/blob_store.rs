@@ -168,7 +168,7 @@ pub fn sha256sum_rust(path: &Path) -> Result<BlobShadowContentSh256> {
     let mut hasher = Sha256::new();
     io::copy(&mut file, &mut hasher)?;
     let hash = hasher.finalize();
-    Ok(BlobShadowContentSh256::from_slice(&hash)?)
+    Ok(BlobShadowContentSh256::from_slice(&hash))
 }
 
 pub fn sha256sum(path: &Path) -> Result<BlobShadowContentSh256> {
