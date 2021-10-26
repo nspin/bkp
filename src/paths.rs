@@ -1,14 +1,10 @@
-#![allow(dead_code)]
-
-use std::path::{PathBuf, Path};
-use std::str::FromStr;
 use std::fmt;
-use std::str;
+use std::str::{self, FromStr};
 
 use thiserror::Error;
 
 
-#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BulkPathComponent(String); // invariants: matches [^/\0]+ and not in {".", ".."}
 
 impl BulkPathComponent {
@@ -16,6 +12,18 @@ impl BulkPathComponent {
 
     pub fn encode(&self) -> String {
         BulkTreeEntryName::encode_child(self)
+    }
+}
+
+impl AsRef<str> for BulkPathComponent {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for BulkPathComponent {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.0)
     }
 }
 
@@ -32,20 +40,8 @@ impl FromStr for BulkPathComponent {
     }
 }
 
-impl AsRef<str> for BulkPathComponent {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
 
-impl fmt::Display for BulkPathComponent {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.0)
-    }
-}
-
-
-#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BulkPath(Vec<BulkPathComponent>);
 
 impl BulkPath {
@@ -74,17 +70,6 @@ impl BulkPath {
     }
 }
 
-impl FromStr for BulkPath {
-    type Err = BulkPathError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.split('/')
-            .map(BulkPathComponent::from_str)
-            .collect::<Result<Vec<BulkPathComponent>, Self::Err>>()
-            .map(Self)
-    }
-}
-
 impl fmt::Display for BulkPath {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for chunk in self.components().iter().map(AsRef::as_ref).intersperse("/") {
@@ -94,48 +79,14 @@ impl fmt::Display for BulkPath {
     }
 }
 
-
-#[derive(Debug)]
-pub struct AnchoredBulkPath {
-    anchor: Option<Anchor>,
-    path: BulkPath,
-}
-
-#[derive(Debug)]
-pub enum Anchor {
-    Root,
-    CurDir,
-}
-
-impl FromStr for AnchoredBulkPath {
+impl FromStr for BulkPath {
     type Err = BulkPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut it = s.split('/');
-        let anchor = match it.next() {
-            Some("") => Some(Anchor::Root),
-            Some(".") => Some(Anchor::CurDir),
-            _ => None,
-        };
-        let path = it.map(BulkPathComponent::from_str)
-            .collect::<Result<Vec<BulkPathComponent>, BulkPathError>>()
-            .map(BulkPath)?;
-        Ok(AnchoredBulkPath {
-            anchor,
-            path,
-        })
-    }
-}
-
-impl fmt::Display for AnchoredBulkPath {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(anchor) = &self.anchor {
-            match anchor {
-                Anchor::Root => write!(fmt, "/")?,
-                Anchor::CurDir => write!(fmt, "./")?,
-            }
-        }
-        write!(fmt, "{}", self.path)
+        s.split('/')
+            .map(BulkPathComponent::from_str)
+            .collect::<Result<Vec<BulkPathComponent>, Self::Err>>()
+            .map(Self)
     }
 }
 
@@ -181,6 +132,19 @@ impl BulkTreeEntryName {
     }
 }
 
+impl fmt::Display for BulkTreeEntryName {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", match self {
+            Self::Marker => {
+                Self::encode_marker()
+            }
+            Self::Child(child) => {
+                Self::encode_child(child)
+            }
+        })
+    }
+}
+
 impl FromStr for BulkTreeEntryName {
     type Err = BulkEncodedPathError;
 
@@ -191,19 +155,6 @@ impl FromStr for BulkTreeEntryName {
             match s.strip_prefix(Self::CHILD_PREFIX) {
                 Some(child) => Self::Child(child.parse()?),
                 None => return Err(BulkEncodedPathError::MissingPrefix),
-            }
-        })
-    }
-}
-
-impl fmt::Display for BulkTreeEntryName {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", match self {
-            Self::Marker => {
-                Self::encode_marker()
-            }
-            Self::Child(child) => {
-                Self::encode_child(child)
             }
         })
     }
@@ -226,4 +177,26 @@ pub enum BulkEncodedPathError {
     MissingPrefix,
     #[error("invalid component")]
     BulkPathError(#[source] #[from] BulkPathError),
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ensure_err<T: FromStr>(s: &'static str) {
+        assert!(T::from_str(s).is_err());
+    }
+
+    fn ensure_inverse<T: FromStr + ToString>(s: &'static str)
+    where
+        <T as FromStr>::Err: fmt::Debug
+    {
+        assert_eq!(T::from_str(s).unwrap().to_string(), s);
+    }
+
+    #[test]
+    fn test() {
+        ensure_err::<BulkPathComponent>(".");
+    }
 }

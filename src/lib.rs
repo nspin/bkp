@@ -3,7 +3,7 @@
 #![allow(unused_imports)]
 
 pub use paths::{
-    BulkPathComponent, BulkPath, AnchoredBulkPath,
+    BulkPathComponent, BulkPath,
     BulkTreeEntryName,
 };
 pub use blob::{

@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use std::{path::PathBuf};
 use git2::{Repository, FileMode};
 use crate::{Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
