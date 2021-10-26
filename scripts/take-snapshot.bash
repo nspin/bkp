@@ -1,7 +1,8 @@
 set -euET -o pipefail
 shopt -s inherit_errexit
 
-# TODO man find(1), section UNUSUAL FILENAMES
+# TODO
+# - Disable quoting. See man find(1), section UNUSUAL FILENAMES.
 
 subject="$1"
 out="$2"
