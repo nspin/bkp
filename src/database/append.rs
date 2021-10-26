@@ -11,11 +11,12 @@ impl Database {
         mode: FileMode,
         object: Oid,
     ) -> Result<Oid> {
-        self.append_inner(big_tree, path.components(), mode.into(), object)
+        self.append_inner(self.empty_blob_oid()?, big_tree, path.components(), mode.into(), object)
     }
 
     fn append_inner(
         &self,
+        empty_blob_oid: Oid,
         big_tree: Oid,
         path: &[BulkPathComponent],
         mode: i32,
@@ -31,9 +32,9 @@ impl Database {
             let this_oid = match builder.get(name.as_ref())? {
                 Some(entry) => {
                     assert_eq!(entry.filemode(), FileMode::Tree.into());
-                    self.append_inner(entry.id(), next_path, mode, object)?
+                    self.append_inner(empty_blob_oid, entry.id(), next_path, mode, object)?
                 }
-                None => self.append_inner_create(next_path, mode, object)?,
+                None => self.append_inner_create(empty_blob_oid, next_path, mode, object)?,
             };
             (FileMode::Tree.into(), this_oid)
         };
@@ -43,6 +44,7 @@ impl Database {
 
     fn append_inner_create(
         &self,
+        empty_blob_oid: Oid,
         path: &[BulkPathComponent],
         mode: i32,
         object: Oid,
@@ -58,7 +60,7 @@ impl Database {
         let (this_mode, this_oid) = if next_path.is_empty() {
             (mode, object)
         } else {
-            let this_oid = self.append_inner_create(next_path, mode, object)?;
+            let this_oid = self.append_inner_create(empty_blob_oid, next_path, mode, object)?;
             (FileMode::Tree.into(), this_oid)
         };
         builder.insert(name.encode(), this_oid, this_mode)?;

@@ -168,6 +168,7 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
         } else {
             let blob = self.repository.find_blob(oid)?;
             ensure!(blob.size() == 0);
+            self.empty_blob_oid = Some(oid);
         }
         Ok(())
     }
