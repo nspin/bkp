@@ -7,8 +7,8 @@ use git2::{Oid, FileMode};
 use fallible_iterator::{FallibleIterator, Peekable};
 use anyhow::Result;
 use crate::{
-    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries,
-    BulkPathComponent, BulkTreeEntryName, RealBlobStorage,
+    Database, Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries, BulkPathComponent,
+    BulkTreeEntryName, RealBlobStorage,
 };
 
 impl Database {
@@ -28,7 +28,10 @@ impl Database {
         empty_blob_oid: Oid,
     ) -> Result<(FileMode, Oid)> {
         Ok(match &entry.value {
-            SnapshotEntryValue::File { blob_shadow, executable } => {
+            SnapshotEntryValue::File {
+                blob_shadow,
+                executable,
+            } => {
                 let mode = if *executable {
                     FileMode::BlobExecutable
                 } else {
@@ -56,18 +59,17 @@ impl Database {
                     FileMode::Blob.into(),
                 )?;
                 while let Some(child_candidate) = entries.peek()? {
-                    if &child_candidate.path.components()[.. child_candidate.path.components().len() - 1] != entry.path.components() {
+                    if &child_candidate.path.components()
+                        [..child_candidate.path.components().len() - 1]
+                        != entry.path.components()
+                    {
                         break;
                     }
                     let child = entries.next()?.unwrap();
                     let child_name = child.path.components().last().unwrap();
                     let (child_mode, child_oid) =
                         self.plant_snapshot_inner(entries, &child, empty_blob_oid)?;
-                    builder.insert(
-                        child_name.encode(),
-                        child_oid,
-                        child_mode.into(),
-                    )?;
+                    builder.insert(child_name.encode(), child_oid, child_mode.into())?;
                 }
                 let oid = builder.write()?;
                 (mode, oid)

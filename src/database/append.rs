@@ -39,9 +39,7 @@ impl Database {
                     assert_eq!(entry.filemode(), FileMode::Tree.into());
                     self.append_inner(entry.id(), next_path, mode, object)?
                 }
-                None => {
-                    self.append_inner_create(next_path, mode, object)?
-                }
+                None => self.append_inner_create(next_path, mode, object)?,
             };
             (FileMode::Tree.into(), this_oid)
         };
@@ -56,7 +54,11 @@ impl Database {
         object: Oid,
     ) -> Result<Oid> {
         let mut builder = self.repository().treebuilder(None)?;
-        builder.insert(BulkTreeEntryName::Marker.encode(), self.empty_blob_oid()?, FileMode::Blob.into())?;
+        builder.insert(
+            BulkTreeEntryName::Marker.encode(),
+            self.empty_blob_oid()?,
+            FileMode::Blob.into(),
+        )?;
         let name = &path[0]; // TODO panics
         let next_path = &path[1..];
         let (this_mode, this_oid) = if next_path.is_empty() {

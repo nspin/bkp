@@ -1,4 +1,5 @@
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
 use std::{path::PathBuf};
 use git2::{Repository, FileMode};
@@ -82,17 +83,16 @@ impl Args {
                 db.diff(tree_a, tree_b, |side, path, entry| {
                     let mut path = path.join("/");
                     path.push_str(&entry.name);
-                    println!(
-                        "{} {:06o} {} {}",
-                        side,
-                        entry.mode,
-                        &entry.oid,
-                        path,
-                    );
+                    println!("{} {:06o} {} {}", side, entry.mode, &entry.oid, path,);
                     Ok(())
                 })?;
             }
-            Command::Append { big_tree, relative_path, mode, object } => {
+            Command::Append {
+                big_tree,
+                relative_path,
+                mode,
+                object,
+            } => {
                 let db = self.database()?;
                 let big_tree = db.resolve_treeish(&big_tree)?;
                 assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));

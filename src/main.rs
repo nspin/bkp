@@ -5,5 +5,4 @@
 //     cli_main()
 // }
 
-fn main() {
-}
+fn main() {}

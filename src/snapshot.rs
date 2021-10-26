@@ -1,14 +1,15 @@
-use std::{
-    fs, io, mem, str,
-    path::{Path, PathBuf},
-    ffi::OsStr,
-    process::Command,
-    os::unix::ffi::OsStrExt,
-};
+use std::fs;
+use std::io;
+use std::str;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
+
 use regex::Regex;
 use lazy_static::lazy_static;
 use fallible_iterator::FallibleIterator;
-use crate::{BlobShadow, BlobShadowContentSh256, BulkPath};
+use crate::{BlobShadow, BulkPath};
 use anyhow::{anyhow, Error, Result};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
@@ -19,9 +20,7 @@ pub struct Snapshot<'a> {
 
 impl<'a> Snapshot<'a> {
     pub fn new(path: &'a Path) -> Snapshot {
-        Self {
-            path,
-        }
+        Self { path }
     }
 
     pub fn path(&self) -> &Path {
@@ -29,11 +28,11 @@ impl<'a> Snapshot<'a> {
     }
 
     fn nodes_path(&self) -> PathBuf {
-        self.path.join("nodes")
+        self.path().join("nodes")
     }
 
     fn digests_path(&self) -> PathBuf {
-        self.path.join("digests")
+        self.path().join("digests")
     }
 
     pub fn entries(&self) -> Result<SnapshotEntries<impl io::BufRead>> {
@@ -68,8 +67,13 @@ pub struct SnapshotEntry {
 
 #[derive(Clone, Debug)]
 pub enum SnapshotEntryValue {
-    File { blob_shadow: BlobShadow, executable: bool },
-    Link { target: String },
+    File {
+        blob_shadow: BlobShadow,
+        executable: bool,
+    },
+    Link {
+        target: String,
+    },
     Tree,
 }
 
@@ -87,6 +91,9 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
             let path = node_line.path.parse()?;
             let value = match node_line.ty {
                 'd' => SnapshotEntryValue::Tree,
+                'l' => SnapshotEntryValue::Link {
+                    target: node_line.target,
+                },
                 'f' => {
                     let digest_line = self.digests_entries.next()?.unwrap();
                     assert_eq!(node_line.path, digest_line.path);
@@ -95,9 +102,6 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
                         executable: node_line.is_executable(),
                     }
                 }
-                'l' => SnapshotEntryValue::Link {
-                    target: node_line.target,
-                },
                 _ => {
                     log::warn!("skipping {:?}", node_line);
                     continue;
@@ -140,13 +144,15 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
             .unwrap();
         }
         let mut buf = vec![];
-        let n = self.reader.read_until(0, &mut buf)?;
-        if n == 0 {
+        if self.reader.read_until(0, &mut buf)? == 0 {
             return Ok(None);
         }
-        let _ = self.reader.read_until(0, &mut buf)?;
-        let s = str::from_utf8(&buf)?;
-        let caps = RE.captures(s).ok_or(anyhow!("regex does not match"))?;
+        if self.reader.read_until(0, &mut buf)? == 0 {
+            panic!()
+        }
+        let caps = RE
+            .captures(str::from_utf8(&buf)?)
+            .ok_or(anyhow!("regex does not match"))?;
         Ok(Some(NodesEntry {
             ty: caps["type"].chars().nth(0).unwrap(),
             mode: u16::from_str_radix(&caps["mode"], 8)?,
@@ -177,12 +183,12 @@ impl<T: io::BufRead> FallibleIterator for DigestsEntries<T> {
                 Regex::new(r"(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
         }
         let mut buf = vec![];
-        let n = self.reader.read_until(0, &mut buf)?;
-        if n == 0 {
+        if self.reader.read_until(0, &mut buf)? == 0 {
             return Ok(None);
         }
-        let s = str::from_utf8(&buf)?;
-        let caps = RE.captures(s).ok_or(anyhow!("regex does not match"))?;
+        let caps = RE
+            .captures(str::from_utf8(&buf)?)
+            .ok_or(anyhow!("regex does not match"))?;
         Ok(Some(DigestsEntry {
             digest: caps["digest"].to_string(),
             path: caps["path"].to_string(),

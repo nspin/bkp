@@ -3,7 +3,6 @@ use std::str::{self, FromStr};
 
 use thiserror::Error;
 
-
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BulkPathComponent(String); // invariants: matches [^/\0]+ and not in {".", ".."}
 
@@ -40,7 +39,6 @@ impl FromStr for BulkPathComponent {
     }
 }
 
-
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BulkPath(Vec<BulkPathComponent>);
 
@@ -62,11 +60,20 @@ impl BulkPath {
     }
 
     pub fn encode(self) -> String {
-        self.components().iter().map(BulkTreeEntryName::encode_child).intersperse("/".to_owned()).collect()
+        self.components()
+            .iter()
+            .map(BulkTreeEntryName::encode_child)
+            .intersperse("/".to_owned())
+            .collect()
     }
 
     pub fn encode_marker(self) -> String {
-        self.components().iter().map(BulkTreeEntryName::encode_child).chain([BulkTreeEntryName::encode_marker()]).intersperse("/".to_owned()).collect()
+        self.components()
+            .iter()
+            .map(BulkTreeEntryName::encode_child)
+            .chain([BulkTreeEntryName::encode_marker()])
+            .intersperse("/".to_owned())
+            .collect()
     }
 }
 
@@ -89,7 +96,6 @@ impl FromStr for BulkPath {
             .map(Self)
     }
 }
-
 
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub enum BulkTreeEntryName {
@@ -134,14 +140,18 @@ impl BulkTreeEntryName {
 
 impl fmt::Display for BulkTreeEntryName {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", match self {
-            Self::Marker => {
-                Self::encode_marker()
+        write!(
+            fmt,
+            "{}",
+            match self {
+                Self::Marker => {
+                    Self::encode_marker()
+                }
+                Self::Child(child) => {
+                    Self::encode_child(child)
+                }
             }
-            Self::Child(child) => {
-                Self::encode_child(child)
-            }
-        })
+        )
     }
 }
 
@@ -160,7 +170,6 @@ impl FromStr for BulkTreeEntryName {
     }
 }
 
-
 #[derive(Error, Debug)]
 pub enum BulkPathError {
     #[error("disallowed component")]
@@ -176,9 +185,12 @@ pub enum BulkEncodedPathError {
     #[error("missing prefix")]
     MissingPrefix,
     #[error("malformed component")]
-    BulkPathError(#[source] #[from] BulkPathError),
+    BulkPathError(
+        #[source]
+        #[from]
+        BulkPathError,
+    ),
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -190,7 +202,7 @@ mod tests {
 
     fn ensure_inverse<T: FromStr + ToString>(s: &'static str)
     where
-        <T as FromStr>::Err: fmt::Debug
+        <T as FromStr>::Err: fmt::Debug,
     {
         assert_eq!(T::from_str(s).unwrap().to_string(), s);
     }
@@ -218,13 +230,26 @@ mod tests {
     #[test]
     fn encoding() {
         assert_eq!(BulkPath::from_str("x/y").unwrap().encode(), "0_x/0_y");
-        assert_eq!(BulkPath::from_str("x/y").unwrap().encode_marker(), "0_x/0_y/0");
+        assert_eq!(
+            BulkPath::from_str("x/y").unwrap().encode_marker(),
+            "0_x/0_y/0"
+        );
     }
 
     #[test]
     fn decode() {
         assert!(BulkTreeEntryName::decode("xy").is_err());
-        matches!(BulkTreeEntryName::decode("0").unwrap(), BulkTreeEntryName::Marker);
-        assert_eq!(BulkTreeEntryName::decode("0_x").unwrap().child().unwrap().to_string(), "x");
+        matches!(
+            BulkTreeEntryName::decode("0").unwrap(),
+            BulkTreeEntryName::Marker
+        );
+        assert_eq!(
+            BulkTreeEntryName::decode("0_x")
+                .unwrap()
+                .child()
+                .unwrap()
+                .to_string(),
+            "x"
+        );
     }
 }

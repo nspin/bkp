@@ -2,7 +2,9 @@ use std::{path::PathBuf, collections::BTreeSet};
 
 use git2::{Repository, Oid, ObjectType, FileMode};
 
-use crate::{Database, BlobShadow, BlobShadowContentSh256, BulkTreeEntryName, BulkPath, BulkPathComponent};
+use crate::{
+    Database, BlobShadow, BlobShadowContentSh256, BulkTreeEntryName, BulkPath, BulkPathComponent,
+};
 use anyhow::{Result, bail, ensure};
 
 impl Database {
@@ -41,7 +43,9 @@ impl Database {
         struct UniqueBlobsCallbacks<T> {
             callback: T,
         }
-        impl<T: FnMut(&BulkPath, &BlobShadowContentSh256) -> Result<()>> TraversalCallbacks for UniqueBlobsCallbacks<T> {
+        impl<T: FnMut(&BulkPath, &BlobShadowContentSh256) -> Result<()>> TraversalCallbacks
+            for UniqueBlobsCallbacks<T>
+        {
             fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
                 let st_blob = blob.read_blob()?;
                 (self.callback)(blob.path, st_blob.content_hash())?;

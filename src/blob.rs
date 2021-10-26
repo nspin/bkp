@@ -4,7 +4,6 @@ use std::str::{self, Utf8Error, FromStr};
 
 use thiserror::Error;
 
-
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BlobShadow {
     content_hash: BlobShadowContentSh256,
@@ -13,10 +12,7 @@ pub struct BlobShadow {
 
 impl BlobShadow {
     pub fn new(content_hash: BlobShadowContentSh256, size: u64) -> Self {
-        Self {
-            content_hash,
-            size,
-        }
+        Self { content_hash, size }
     }
 
     pub fn content_hash(&self) -> &BlobShadowContentSh256 {
@@ -52,12 +48,12 @@ impl FromStr for BlobShadow {
         let content_hash = if let Some(("sha256", value)) = line()?.split_once(' ') {
             value.parse()?
         } else {
-            return Err(Self::Err::MalformedBlobShadow)
+            return Err(Self::Err::MalformedBlobShadow);
         };
         let size = if let Some(("size", value)) = line()?.split_once(' ') {
             value.parse().map_err(Self::Err::MalformedBlobShadowSize)?
         } else {
-            return Err(Self::Err::MalformedBlobShadow)
+            return Err(Self::Err::MalformedBlobShadow);
         };
         if !line()?.is_empty() {
             return Err(Self::Err::MalformedBlobShadow);
@@ -65,9 +61,7 @@ impl FromStr for BlobShadow {
         if let None = it.next() {
             Err(Self::Err::MalformedBlobShadow)
         } else {
-            Ok(Self {
-                size, content_hash,
-            })
+            Ok(Self { size, content_hash })
         }
     }
 }
@@ -112,18 +106,22 @@ impl FromStr for BlobShadowContentSh256 {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut digest = [0; Self::SHA256_DIGEST_SIZE];
-        hex::decode_to_slice(s, &mut digest).map_err(BlobShadowError::MalformedBlobShadowContentHashHex)?;
+        hex::decode_to_slice(s, &mut digest)
+            .map_err(BlobShadowError::MalformedBlobShadowContentHashHex)?;
         Ok(Self::new(digest))
     }
 }
-
 
 #[derive(Error, Debug)]
 pub enum BlobShadowError {
     #[error("malformed")]
     MalformedBlobShadow,
     #[error("error converting from utf-8: {0}")]
-    Utf8Error(#[source] #[from] Utf8Error),
+    Utf8Error(
+        #[source]
+        #[from]
+        Utf8Error,
+    ),
     #[error("malformed content hash hex: {0}")]
     MalformedBlobShadowContentHashHex(#[source] hex::FromHexError),
     #[error("malformed size")]

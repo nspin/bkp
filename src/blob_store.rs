@@ -158,7 +158,9 @@ pub fn sha256sum_coreutils(path: &Path) -> Result<BlobShadowContentSh256> {
     output.status.exit_ok()?;
     // use std::os::unix::ffi::OsStrExt;
     // eprintln!("{:?}", std::ffi::OsStr::from_bytes(&output.stdout));
-    let caps = RE.captures(&output.stdout).ok_or(anyhow!("regex does not match"))?;
+    let caps = RE
+        .captures(&output.stdout)
+        .ok_or(anyhow!("regex does not match"))?;
     Ok(std::str::from_utf8(&caps["digest"])?.parse()?)
 }
 

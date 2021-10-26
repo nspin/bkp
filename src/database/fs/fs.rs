@@ -176,11 +176,19 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get_mut(&parent).unwrap() {
                 InodeEntry::Tree { oid, .. } => Ok(oid),
-                _ => Err(Box::<dyn Error>::from(format!("lookup: parent inode {} not present", parent))),
+                _ => Err(Box::<dyn Error>::from(format!(
+                    "lookup: parent inode {} not present",
+                    parent
+                ))),
             }
         );
         let tree = self.repository.find_tree(oid.clone()).unwrap();
-        let entry_name = name.to_str().unwrap().parse::<BulkPathComponent>().unwrap().encode();
+        let entry_name = name
+            .to_str()
+            .unwrap()
+            .parse::<BulkPathComponent>()
+            .unwrap()
+            .encode();
         for (i, entry) in tree.iter().enumerate() {
             if entry.name().unwrap() == entry_name {
                 let ino = match self.family_tree.get(&(parent, i)) {
@@ -211,7 +219,10 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get(&ino).unwrap() {
                 InodeEntry::Tree { oid, parent } => Ok((*oid, *parent)),
-                _ => Err(Box::<dyn Error>::from(format!("readdir: inode {} not present", ino))),
+                _ => Err(Box::<dyn Error>::from(format!(
+                    "readdir: inode {} not present",
+                    ino
+                ))),
             }
         );
         let always: Vec<Result<Option<(u64, FileType, String)>>> = vec![
@@ -263,7 +274,10 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
             reply,
             match self.inodes.get(&ino).unwrap() {
                 InodeEntry::Link { oid, .. } => Ok(oid),
-                _ => Err(Box::<dyn Error>::from(format!("readlink: inode {} not present", ino))),
+                _ => Err(Box::<dyn Error>::from(format!(
+                    "readlink: inode {} not present",
+                    ino
+                ))),
             }
         );
         let blob = self.repository.find_blob(oid.clone()).unwrap();

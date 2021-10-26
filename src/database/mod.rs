@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use std::{
     process::Command,
     path::{Path, PathBuf, Component},
@@ -14,8 +16,7 @@ mod append;
 mod fs;
 
 pub use traverse::{
-    TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree,
-    VisitTreeDecision,
+    TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree, VisitTreeDecision,
 };
 
 pub struct Database {
