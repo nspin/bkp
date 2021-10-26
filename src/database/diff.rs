@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use git2::{Repository, Oid, FileMode, TreeEntry, TreeIter};
 use anyhow::Result;
+use git2::{FileMode, Oid, Repository, TreeEntry, TreeIter};
 
 use crate::Database;
 

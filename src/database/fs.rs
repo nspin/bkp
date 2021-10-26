@@ -1,23 +1,23 @@
-use std::ffi::OsStr;
-use std::time::{Duration, UNIX_EPOCH};
-use std::fs::{File, OpenOptions};
 use std::collections::BTreeMap;
-use std::iter::{FromIterator, IntoIterator};
-use std::os::unix::io::AsRawFd;
 use std::convert::{TryFrom, TryInto};
 use std::error::Error;
+use std::ffi::OsStr;
+use std::fs::{File, OpenOptions};
+use std::iter::{FromIterator, IntoIterator};
+use std::os::unix::io::AsRawFd;
 use std::path::Path;
+use std::time::{Duration, UNIX_EPOCH};
 
-use log::error;
-use libc::{EINVAL, ENOENT};
-use git2::{Repository, Oid, ObjectType, FileMode, TreeEntry};
-use fuser::{
-    FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr, ReplyDirectory,
-    ReplyOpen, ReplyEmpty, MountOption,
-};
 use anyhow::{bail, ensure, Result};
+use fuser::{
+    FileAttr, FileType, Filesystem, MountOption, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty,
+    ReplyEntry, ReplyOpen, Request,
+};
+use git2::{FileMode, ObjectType, Oid, Repository, TreeEntry};
+use libc::{EINVAL, ENOENT};
+use log::error;
 
-use crate::{Database, RealBlobStorage, BlobShadow, BulkPathComponent, BulkTreeEntryName};
+use crate::{BlobShadow, BulkPathComponent, BulkTreeEntryName, Database, RealBlobStorage};
 
 const FS_NAME: &str = "st";
 

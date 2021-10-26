@@ -1,5 +1,5 @@
-use git2::{Oid, FileMode};
 use anyhow::Result;
+use git2::{FileMode, Oid};
 
 use crate::{BulkPath, Database};
 

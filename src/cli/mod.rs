@@ -1,12 +1,12 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
-use git2::{Repository, FileMode};
-use anyhow::{Result};
+use anyhow::Result;
+use git2::{FileMode, Repository};
 
-use crate::{Database, FilesystemRealBlobStorage, Snapshot, sha256sum};
+use crate::{sha256sum, Database, FilesystemRealBlobStorage, Snapshot};
 
 mod args;
 

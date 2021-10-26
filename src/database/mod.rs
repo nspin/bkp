@@ -1,7 +1,7 @@
 use std::process::Command;
 
-use git2::{Repository, Oid};
 use anyhow::Result;
+use git2::{Oid, Repository};
 
 mod diff;
 mod append;

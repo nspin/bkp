@@ -1,15 +1,15 @@
 #![feature(exit_status_error)]
 #![feature(iter_intersperse)]
 
-pub use paths::{BulkPathComponent, BulkPath, BulkTreeEntryName};
 pub use blob::{BlobShadow, BlobShadowContentSh256};
-pub use blob_store::{RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage, sha256sum};
-pub use snapshot::{Snapshot, SnapshotEntry, SnapshotEntryValue, SnapshotEntries};
+pub use blob_store::{sha256sum, FilesystemRealBlobStorage, MockRealBlobStorage, RealBlobStorage};
+pub use cli::cli_main;
 pub use database::{
     Database, TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree,
     VisitTreeDecision,
 };
-pub use cli::cli_main;
+pub use paths::{BulkPath, BulkPathComponent, BulkTreeEntryName};
+pub use snapshot::{Snapshot, SnapshotEntries, SnapshotEntry, SnapshotEntryValue};
 
 mod paths;
 mod blob;

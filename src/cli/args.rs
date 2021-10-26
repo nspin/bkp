@@ -1,13 +1,13 @@
 use std::env;
+use std::error::Error;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
-use std::error::Error;
 
-use clap::{App, ArgMatches, Arg, SubCommand};
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use clap::{App, Arg, ArgMatches, SubCommand};
 
-use crate::{BulkPath};
+use crate::BulkPath;
 
 const ENV_GIT_DIR: &str = "GIT_DIR";
 const ENV_BLOB_STORE: &str = "BULK_BLOB_STORE";

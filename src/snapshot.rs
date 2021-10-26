@@ -1,15 +1,15 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
-use std::str;
+use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsStr;
-use std::os::unix::ffi::OsStrExt;
+use std::str;
 
-use regex::Regex;
-use lazy_static::lazy_static;
-use fallible_iterator::FallibleIterator;
 use anyhow::{anyhow, Error, Result};
+use fallible_iterator::FallibleIterator;
+use lazy_static::lazy_static;
+use regex::Regex;
 
 use crate::{BlobShadow, BulkPath};
 

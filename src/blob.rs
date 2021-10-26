@@ -1,6 +1,6 @@
 use std::fmt;
 use std::num::ParseIntError;
-use std::str::{self, Utf8Error, FromStr};
+use std::str::{self, FromStr, Utf8Error};
 
 use thiserror::Error;
 

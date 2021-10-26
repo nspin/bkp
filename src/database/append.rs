@@ -1,7 +1,7 @@
-use git2::{Oid, FileMode};
 use anyhow::Result;
+use git2::{FileMode, Oid};
 
-use crate::{BulkTreeEntryName, BulkPath, BulkPathComponent, Database};
+use crate::{BulkPath, BulkPathComponent, BulkTreeEntryName, Database};
 
 impl Database {
     pub fn append(
