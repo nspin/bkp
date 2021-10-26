@@ -7,7 +7,8 @@ shopt -s inherit_errexit
 subject="$1"
 out="$2"
 
-subject_file="$out/subject"
+subject_file="$out/subject.txt"
+sha256sum_file="$out/sha256sum.txt"
 nodes_file="$out/nodes"
 files_file="$out/files"
 digests_file="$out/digests"
@@ -23,3 +24,5 @@ find "$subject" -type f -fprintf "$files_file" '%P\0'
         sha256sum -bz "$path"
     done
 ) < "$files_file" > "$digests_file"
+
+sha256sum -b "$nodes_file" "$digests_file" > "$sha256sum_file"
