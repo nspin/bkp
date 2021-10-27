@@ -34,7 +34,7 @@ impl Database {
         let (head_mode, head_oid) = if tail.is_empty() {
             (mode, object)
         } else {
-            let head_oid = match builder.get(head.as_ref())? {
+            let head_oid = match builder.get(&head.encode())? {
                 None => self.append_inner_create(empty_blob_oid, tail, mode, object)?,
                 Some(entry) => {
                     assert_eq!(entry.filemode(), FileMode::Tree.into());
@@ -43,6 +43,9 @@ impl Database {
             };
             (FileMode::Tree, head_oid)
         };
+        if builder.get(&head.encode())?.is_some() {
+            builder.remove(&head.encode()).unwrap();
+        }
         builder.insert(head.encode(), head_oid, head_mode.into())?;
         Ok(builder.write()?)
     }
