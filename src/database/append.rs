@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use git2::{FileMode, Oid};
 
 use crate::{BulkPath, BulkPathComponent, BulkTreeEntryName, Database};
@@ -10,6 +10,7 @@ impl Database {
         path: &BulkPath, // precondition: non-empty
         mode: FileMode,
         object: Oid,
+        can_replace: bool,
     ) -> Result<Oid> {
         self.append_inner(
             self.empty_blob_oid()?,
@@ -17,6 +18,7 @@ impl Database {
             path.components(),
             mode,
             object,
+            can_replace,
         )
     }
 
@@ -27,18 +29,22 @@ impl Database {
         path: &[BulkPathComponent],
         mode: FileMode,
         object: Oid,
+        can_replace: bool,
     ) -> Result<Oid> {
         let orig = self.repository().find_tree(big_tree)?;
         let mut builder = self.repository().treebuilder(Some(&orig))?;
         let (head, tail) = path.split_first().unwrap();
         let (head_mode, head_oid) = if tail.is_empty() {
+            if !can_replace && builder.get(&head.encode())?.is_some() {
+                bail!("would replace"); // TODO structured error
+            }
             (mode, object)
         } else {
             let head_oid = match builder.get(&head.encode())? {
                 None => self.append_inner_create(empty_blob_oid, tail, mode, object)?,
                 Some(entry) => {
                     assert_eq!(entry.filemode(), FileMode::Tree.into());
-                    self.append_inner(empty_blob_oid, entry.id(), tail, mode, object)?
+                    self.append_inner(empty_blob_oid, entry.id(), tail, mode, object, can_replace)?
                 }
             };
             (FileMode::Tree, head_oid)

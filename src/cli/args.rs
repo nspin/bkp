@@ -40,6 +40,7 @@ pub enum Command {
         relative_path: BulkPath,
         mode: String,
         object: String,
+        force: bool,
     },
     Check {
         tree: String,
@@ -111,6 +112,12 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         )
         .subcommand(
             SubCommand::with_name("append")
+                .arg(
+                    Arg::with_name("force")
+                        .long("force")
+                        .short("f")
+                        .help("Replace RELATIVE_PATH if it exists."),
+                )
                 .arg(Arg::with_name("MODE").required(true).index(1))
                 .arg(Arg::with_name("OBJECT").required(true).index(2))
                 .arg(Arg::with_name("RELATIVE_PATH").required(true).index(3))
@@ -224,6 +231,7 @@ impl Args {
                 relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
                 mode: submatches.value_of("MODE").unwrap().parse()?,
                 object: submatches.value_of("OBJECT").unwrap().parse()?,
+                force: submatches.is_present("force"),
             }
         } else if let Some(submatches) = matches.subcommand_matches("unique-blobs") {
             ensure_git_dir()?;
