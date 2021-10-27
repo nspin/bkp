@@ -28,6 +28,7 @@ pub enum Command {
         relative_path: BulkPath,
         force: bool,
         remove_after: bool,
+        snapshot_dir: PathBuf,
     },
     Mount {
         mountpoint: PathBuf,
@@ -108,6 +109,14 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                     Arg::with_name("remove_after")
                         .long("--rm")
                         .help("Remove snapshot afterwards if success."),
+                )
+                .arg(
+                    Arg::with_name("snapshot_dir")
+                        .long("--snapshot-dir")
+                        .short("-d")
+                        .value_name("SNAPSHOT_DIR")
+                        .default_value("tmp.snapshot")
+                        .takes_value(true),
                 )
                 .arg(Arg::with_name("SUBJECT").required(true).index(1))
                 .arg(Arg::with_name("RELATIVE_PATH").required(true).index(2)),
@@ -219,6 +228,7 @@ impl Args {
                 relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
                 force: submatches.is_present("force"),
                 remove_after: submatches.is_present("remove_after"),
+                snapshot_dir: submatches.value_of("SNAPSHOT_DIR").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("mount") {
             ensure_git_dir()?;

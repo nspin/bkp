@@ -50,11 +50,11 @@ impl Args {
                 relative_path,
                 force,
                 remove_after,
+                snapshot_dir,
             } => {
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
-                let tmp: PathBuf = "tmp.snapshot".parse()?; // TODO
-                let snapshot = Snapshot::new(&tmp);
+                let snapshot = Snapshot::new(&snapshot_dir);
                 log::info!(
                     "taking snapshot of {} to {}",
                     subject.display(),
