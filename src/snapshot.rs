@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
-use anyhow::{anyhow, Error, Result, Context};
+use anyhow::{anyhow, Context, Error, Result};
 use fallible_iterator::FallibleIterator;
 use lazy_static::lazy_static;
 use regex::Regex;

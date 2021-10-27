@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use git2::{Oid, Repository};
 
 use crate::{shallow_diff, ShallowDifference};

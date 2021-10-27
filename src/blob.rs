@@ -143,7 +143,8 @@ mod tests {
         assert_eq!(T::from_str(s).unwrap().to_string(), s);
     }
 
-    const TEST_HEX_DIGEST: &str = "da60ed9cad3849231c91f0419c8eb59d10d0ccf3fdfa7341fa6f657b684ba1cf";
+    const TEST_HEX_DIGEST: &str =
+        "da60ed9cad3849231c91f0419c8eb59d10d0ccf3fdfa7341fa6f657b684ba1cf";
 
     #[test]
     fn shadow_content_sha256() {

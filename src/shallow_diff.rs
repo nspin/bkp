@@ -3,7 +3,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::{self, Utf8Error};
 
-use git2::{FileMode, Oid, Repository, TreeEntry, TreeIter, Error};
+use git2::{Error, FileMode, Oid, Repository, TreeEntry, TreeIter};
 
 pub struct ShallowDifference<'a> {
     pub parent: &'a [Vec<u8>],
@@ -14,7 +14,11 @@ pub struct ShallowDifference<'a> {
 }
 
 impl<'a> ShallowDifference<'a> {
-    fn new(parent: &'a [Vec<u8>], side: &'a ShallowDifferenceSide, entry: &'a TreeEntry<'a>) -> Self {
+    fn new(
+        parent: &'a [Vec<u8>],
+        side: &'a ShallowDifferenceSide,
+        entry: &'a TreeEntry<'a>,
+    ) -> Self {
         Self {
             parent,
             side,
@@ -25,7 +29,13 @@ impl<'a> ShallowDifference<'a> {
     }
 
     pub fn render_path(&self) -> Result<String, Utf8Error> {
-        self.parent.iter().map(AsRef::as_ref).chain([self.name]).map(str::from_utf8).intersperse(Ok("/")).collect::<Result<String, Utf8Error>>()
+        self.parent
+            .iter()
+            .map(AsRef::as_ref)
+            .chain([self.name])
+            .map(str::from_utf8)
+            .intersperse(Ok("/"))
+            .collect::<Result<String, Utf8Error>>()
     }
 }
 
@@ -74,7 +84,7 @@ struct Differ<'a, T, E> {
 
 impl<'a, T, E> Differ<'a, T, E>
 where
-    T: for <'b> FnMut(&ShallowDifference<'b>) -> Result<(), E>,
+    T: for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), E>,
     E: From<Error> + 'static,
 {
     fn diff_inner(&mut self, tree_a: Oid, tree_b: Oid) -> Result<(), E> {
@@ -103,12 +113,20 @@ where
                 (Some(entry_a), Some(entry_b)) => {
                     match entry_a.name_bytes().cmp(&entry_b.name_bytes()) {
                         Ordering::Less => {
-                            opt_entry_a =
-                                self.report_until(&entry_b, &ShallowDifferenceSide::A, &entry_a, &mut it_a)?;
+                            opt_entry_a = self.report_until(
+                                &entry_b,
+                                &ShallowDifferenceSide::A,
+                                &entry_a,
+                                &mut it_a,
+                            )?;
                         }
                         Ordering::Greater => {
-                            opt_entry_b =
-                                self.report_until(&entry_a, &ShallowDifferenceSide::B, &entry_b, &mut it_b)?;
+                            opt_entry_b = self.report_until(
+                                &entry_a,
+                                &ShallowDifferenceSide::B,
+                                &entry_b,
+                                &mut it_b,
+                            )?;
                         }
                         Ordering::Equal => {
                             let news = if entry_a.filemode() != entry_b.filemode() {
@@ -139,7 +157,15 @@ where
         Ok(())
     }
 
-    fn exhaust<'b>(&mut self, side: &'b ShallowDifferenceSide, current: &'b TreeEntry, it: &'b mut TreeIter) -> Result<(), E> where 'a: 'b {
+    fn exhaust<'b>(
+        &mut self,
+        side: &'b ShallowDifferenceSide,
+        current: &'b TreeEntry,
+        it: &'b mut TreeIter,
+    ) -> Result<(), E>
+    where
+        'a: 'b,
+    {
         self.report(side, current)?;
         for entry in it {
             self.report(side, &entry)?;
@@ -153,7 +179,10 @@ where
         side: &'b ShallowDifferenceSide,
         current: &'b TreeEntry,
         it: &'b mut TreeIter,
-    ) -> Result<Option<TreeEntry<'static>>, E> where 'a: 'b {
+    ) -> Result<Option<TreeEntry<'static>>, E>
+    where
+        'a: 'b,
+    {
         self.report(side, current)?;
         for entry in it {
             if &entry < target_entry {
@@ -165,7 +194,10 @@ where
         Ok(None)
     }
 
-    fn report<'b>(&mut self, side: &'b ShallowDifferenceSide, entry: &'b TreeEntry) -> Result<(), E> where 'a: 'b {
+    fn report<'b>(&mut self, side: &'b ShallowDifferenceSide, entry: &'b TreeEntry) -> Result<(), E>
+    where
+        'a: 'b,
+    {
         (self.callback)(&ShallowDifference::new(&self.path, side, entry))
     }
 }
