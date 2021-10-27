@@ -1,5 +1,4 @@
 use std::env;
-use std::error::Error;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::string::ToString;

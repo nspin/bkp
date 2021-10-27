@@ -1,8 +1,4 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
 use std::io::Write;
-use std::path::PathBuf;
 
 use anyhow::Result;
 use git2::{FileMode, Repository};
