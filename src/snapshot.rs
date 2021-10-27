@@ -20,6 +20,14 @@ pub struct Snapshot<'a> {
 }
 
 impl<'a> Snapshot<'a> {
+    const FILES: &'static [&'static str] = &[
+        "subject.txt",
+        "sha256sum.txt",
+        "nodes",
+        "files",
+        "digests",
+    ];
+
     pub fn new(path: &'a Path) -> Snapshot {
         Self { path }
     }
@@ -56,6 +64,14 @@ impl<'a> Snapshot<'a> {
             .arg(&self.path)
             .status()?
             .exit_ok()?;
+        Ok(())
+    }
+
+    pub fn remove(&self) -> Result<()> {
+        for file in Self::FILES {
+            fs::remove_file(&self.path().join(file))?;
+        }
+        fs::remove_dir(self.path())?;
         Ok(())
     }
 }
