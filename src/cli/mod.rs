@@ -2,11 +2,13 @@
 #![allow(unused_imports)]
 
 use std::path::PathBuf;
+use std::io::Write;
 
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use anyhow::Result;
 use git2::{FileMode, Repository};
 
-use crate::{sha256sum, Database, FilesystemRealBlobStorage, Snapshot};
+use crate::{sha256sum, Database, FilesystemRealBlobStorage, Snapshot, ShallowDifferenceSide};
 
 mod args;
 
@@ -75,10 +77,17 @@ impl Args {
                 let db = self.database()?;
                 let tree_a = db.resolve_treeish(&tree_a)?;
                 let tree_b = db.resolve_treeish(&tree_b)?;
+                let mut stdout = StandardStream::stdout(ColorChoice::Always);
                 db.shallow_diff(tree_a, tree_b, |difference| {
-                    println!("{}", difference);
+                    let color = match difference.side {
+                        ShallowDifferenceSide::A => Color::Red,
+                        ShallowDifferenceSide::B => Color::Green,
+                    };
+                    stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
+                    writeln!(&mut stdout, "{}", difference)?;
                     Ok(())
                 })?;
+                stdout.reset()?;
             }
             Command::Append {
                 big_tree,

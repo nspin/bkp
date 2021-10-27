@@ -75,6 +75,7 @@ dependencies = [
  "rand",
  "regex",
  "sha2",
+ "termcolor",
  "thiserror",
 ]
 
