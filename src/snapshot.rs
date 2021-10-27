@@ -20,13 +20,8 @@ pub struct Snapshot<'a> {
 }
 
 impl<'a> Snapshot<'a> {
-    const FILES: &'static [&'static str] = &[
-        "subject.txt",
-        "sha256sum.txt",
-        "nodes",
-        "files",
-        "digests",
-    ];
+    const FILES: &'static [&'static str] =
+        &["subject.txt", "sha256sum.txt", "nodes", "files", "digests"];
 
     pub fn new(path: &'a Path) -> Snapshot {
         Self { path }

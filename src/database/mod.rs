@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use anyhow::{Error, Result};
-use git2::{Oid, Repository, Tree, Commit, Signature};
+use git2::{Commit, Oid, Repository, Signature, Tree};
 
 use crate::{shallow_diff, ShallowDifference};
 
@@ -70,14 +70,9 @@ impl Database {
         parent: &Commit<'_>,
     ) -> Result<Oid> {
         let dummy_sig = Signature::now("x", "x@x")?;
-        Ok(self.repository().commit(
-            None,
-            &dummy_sig,
-            &dummy_sig,
-            message,
-            tree,
-            &[parent],
-        )?)
+        Ok(self
+            .repository()
+            .commit(None, &dummy_sig, &dummy_sig, message, tree, &[parent])?)
     }
 
     pub fn safe_merge(&self, progress: Oid) -> Result<()> {

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use git2::{FileMode, Oid};
 
 use crate::{BulkPath, BulkPathComponent, BulkTreeEntryName, Database};

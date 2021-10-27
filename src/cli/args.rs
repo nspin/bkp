@@ -122,7 +122,7 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .arg(Arg::with_name("TREE_A").index(1))
                 .arg(Arg::with_name("TREE_B").index(2))
                 .help("Default: HEAD _ or HEAD^ HEAD."),
-            )
+        )
         .subcommand(
             SubCommand::with_name("check")
                 .arg(Arg::with_name("TREE").default_value("HEAD").index(1)),
@@ -229,12 +229,13 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("diff") {
             ensure_git_dir()?;
-            let (tree_a, tree_b) = match (submatches.value_of("TREE_A"), submatches.value_of("TREE_B")) {
-                (None, None) => ("HEAD^", "HEAD"),
-                (Some(tree_a), None) => ("HEAD", tree_a),
-                (Some(tree_a), Some(tree_b)) => (tree_a, tree_b),
-                _ => panic!(),
-            };
+            let (tree_a, tree_b) =
+                match (submatches.value_of("TREE_A"), submatches.value_of("TREE_B")) {
+                    (None, None) => ("HEAD^", "HEAD"),
+                    (Some(tree_a), None) => ("HEAD", tree_a),
+                    (Some(tree_a), Some(tree_b)) => (tree_a, tree_b),
+                    _ => panic!(),
+                };
             Command::Diff {
                 tree_a: tree_a.to_string(),
                 tree_b: tree_b.to_string(),

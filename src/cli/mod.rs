@@ -1,14 +1,14 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-use std::path::PathBuf;
 use std::io::Write;
+use std::path::PathBuf;
 
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use anyhow::Result;
 use git2::{FileMode, Repository};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::{sha256sum, Database, FilesystemRealBlobStorage, Snapshot, ShallowDifferenceSide};
+use crate::{sha256sum, Database, FilesystemRealBlobStorage, ShallowDifferenceSide, Snapshot};
 
 mod args;
 
@@ -70,13 +70,14 @@ impl Args {
                 // db.add_to_index(mode, tree, relative_path)?;
                 let parent = db.repository().head()?.peel_to_commit()?;
                 let big_tree = parent.tree_id();
-                log::info!("adding snapshot to HEAD^{{tree}} ({}) at {}", big_tree, relative_path);
+                log::info!(
+                    "adding snapshot to HEAD^{{tree}} ({}) at {}",
+                    big_tree,
+                    relative_path
+                );
                 let new_big_tree = db.append(big_tree, &relative_path, mode, tree, *force)?;
-                let commit = db.commit_simple(
-                    "x",
-                    &db.repository().find_tree(new_big_tree)?,
-                    &parent,
-                )?;
+                let commit =
+                    db.commit_simple("x", &db.repository().find_tree(new_big_tree)?, &parent)?;
                 log::info!("new commit is {}. merging --ff-only into HEAD", commit);
                 db.safe_merge(commit)?;
                 if *remove_after {
