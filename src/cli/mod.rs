@@ -45,15 +45,11 @@ impl Args {
 
     fn run_command(&self) -> Result<()> {
         match &self.command {
-            Command::Mount { mountpoint, tree } => {
-                let db = self.database()?;
-                let blob_store = self.blob_storage()?;
-                let tree = db.resolve_treeish(&tree)?;
-                db.mount(tree, &mountpoint, blob_store)?;
-            }
             Command::Snapshot {
                 subject,
                 relative_path,
+                force,
+                remove_after,
             } => {
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
@@ -75,7 +71,7 @@ impl Args {
                 let parent = db.repository().head()?.peel_to_commit()?;
                 let big_tree = parent.tree_id();
                 log::info!("adding snapshot to HEAD^{{tree}} ({}) at {}", big_tree, relative_path);
-                let new_big_tree = db.append(big_tree, &relative_path, mode, tree, false)?;
+                let new_big_tree = db.append(big_tree, &relative_path, mode, tree, *force)?;
                 let commit = db.commit_simple(
                     "x",
                     &db.repository().find_tree(new_big_tree)?,
@@ -83,6 +79,15 @@ impl Args {
                 )?;
                 log::info!("new commit is {}. merging --ff-only into HEAD", commit);
                 db.safe_merge(commit)?;
+                if *remove_after {
+                    snapshot.remove()?;
+                }
+            }
+            Command::Mount { mountpoint, tree } => {
+                let db = self.database()?;
+                let blob_store = self.blob_storage()?;
+                let tree = db.resolve_treeish(&tree)?;
+                db.mount(tree, &mountpoint, blob_store)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;
@@ -100,21 +105,6 @@ impl Args {
                 })?;
                 stdout.reset()?;
             }
-            Command::Append {
-                big_tree,
-                relative_path,
-                mode,
-                object,
-                force,
-            } => {
-                let db = self.database()?;
-                let big_tree = db.resolve_treeish(&big_tree)?;
-                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
-                let mode = FileMode::Tree;
-                let object = db.resolve_treeish(&object)?;
-                let new_tree = db.append(big_tree, &relative_path, mode, object, *force)?;
-                println!("{}", new_tree)
-            }
             Command::Check { tree } => {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;
@@ -127,6 +117,10 @@ impl Args {
                     println!("{} {}", blob, path);
                     Ok(())
                 })?;
+            }
+            Command::Sha256Sum { path } => {
+                let blob = sha256sum(path)?;
+                println!("{} *{}", blob, path.display());
             }
             Command::TakeSnapshot { subject, out } => {
                 let snapshot = Snapshot::new(out);
@@ -144,6 +138,21 @@ impl Args {
                 let tree = db.resolve_treeish(&tree)?;
                 db.store_snapshot(&blob_store, tree, &subject)?;
             }
+            Command::Append {
+                big_tree,
+                relative_path,
+                mode,
+                object,
+                force,
+            } => {
+                let db = self.database()?;
+                let big_tree = db.resolve_treeish(&big_tree)?;
+                assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
+                let mode = FileMode::Tree;
+                let object = db.resolve_treeish(&object)?;
+                let new_tree = db.append(big_tree, &relative_path, mode, object, *force)?;
+                println!("{}", new_tree)
+            }
             Command::AddToIndex {
                 mode,
                 tree,
@@ -153,10 +162,6 @@ impl Args {
                 let tree = db.resolve_treeish(&tree)?;
                 assert_eq!(mode, &format!("{:06o}", u32::from(FileMode::Tree)));
                 db.add_to_index(FileMode::Tree, tree, relative_path)?;
-            }
-            Command::Sha256Sum { path } => {
-                let blob = sha256sum(path)?;
-                println!("{} *{}", blob, path.display());
             }
         }
         Ok(())
