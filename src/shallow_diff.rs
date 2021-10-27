@@ -37,8 +37,8 @@ pub enum ShallowDifferenceSide {
 impl fmt::Display for ShallowDifferenceSide {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ShallowDifferenceSide::A => write!(fmt, "+"),
-            ShallowDifferenceSide::B => write!(fmt, "-"),
+            ShallowDifferenceSide::A => write!(fmt, "-"),
+            ShallowDifferenceSide::B => write!(fmt, "+"),
         }
     }
 }
