@@ -75,9 +75,8 @@ impl Args {
                 let db = self.database()?;
                 let tree_a = db.resolve_treeish(&tree_a)?;
                 let tree_b = db.resolve_treeish(&tree_b)?;
-                db.diff(tree_a, tree_b, |side, path, entry| {
-                    let path = path.iter().chain([&entry.name]).map(String::as_str).intersperse("/").collect::<String>();
-                    println!("{} {:06o} {} {}", side, entry.mode, &entry.oid, path,);
+                db.shallow_diff(tree_a, tree_b, |difference| {
+                    println!("{}", difference);
                     Ok(())
                 })?;
             }

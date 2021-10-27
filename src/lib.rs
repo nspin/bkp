@@ -5,6 +5,7 @@ mod paths;
 mod blob;
 mod blob_store;
 mod snapshot;
+mod shallow_diff;
 mod database;
 mod cli;
 
@@ -22,6 +23,10 @@ pub use crate::{
     },
     snapshot::{
         Snapshot, SnapshotEntries, SnapshotEntry, SnapshotEntryValue,
+    },
+    shallow_diff::{
+        ShallowDifference, ShallowDifferenceSide,
+        shallow_diff,
     },
     database::{
         Database,

@@ -1,9 +1,10 @@
 use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{Result, Error};
 use git2::{Oid, Repository};
 
-mod diff;
+use crate::{shallow_diff, ShallowDifference};
+
 mod append;
 mod traverse;
 mod snapshot;
@@ -51,5 +52,14 @@ impl Database {
     pub fn empty_blob_oid(&self) -> Result<Oid> {
         let writer = self.repository().blob_writer(None)?;
         Ok(writer.commit()?)
+    }
+
+    pub fn shallow_diff(
+        &self,
+        tree_a: Oid,
+        tree_b: Oid,
+        callback: impl for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), Error>,
+    ) -> Result<()> {
+        shallow_diff(&self.repository, tree_a, tree_b, callback).map_err(Error::from)
     }
 }
