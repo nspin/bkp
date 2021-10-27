@@ -70,8 +70,19 @@ impl Args {
                 log::info!("planted: {:06o},{}", u32::from(mode), tree);
                 log::info!("storing snapshot");
                 db.store_snapshot(&blob_store, tree, &subject)?;
-                log::info!("adding snapshot to index at {}", relative_path);
-                db.add_to_index(mode, tree, relative_path)?;
+                // log::info!("adding snapshot to index at {}", relative_path);
+                // db.add_to_index(mode, tree, relative_path)?;
+                let parent = db.repository().head()?.peel_to_commit()?;
+                let big_tree = parent.tree_id();
+                log::info!("adding snapshot to HEAD^{{tree}} ({}) at {}", big_tree, relative_path);
+                db.append(big_tree, &relative_path, mode, tree, false)?;
+                let commit = db.commit_simple(
+                    "x",
+                    &db.repository().find_tree(tree)?,
+                    &parent,
+                )?;
+                log::info!("new commit is {}. merging --ff-only into HEAD", commit);
+                db.safe_merge(commit)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;

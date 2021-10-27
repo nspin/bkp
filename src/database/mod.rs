@@ -80,7 +80,7 @@ impl Database {
         )?)
     }
 
-    pub fn safe_merge(&self,  progress: Oid) -> Result<()> {
+    pub fn safe_merge(&self, progress: Oid) -> Result<()> {
         self.invoke_git(&[
             "merge".to_owned(),
             "--ff-only".to_owned(),
