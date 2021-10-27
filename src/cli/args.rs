@@ -229,9 +229,15 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("diff") {
             ensure_git_dir()?;
+            let (tree_a, tree_b) = match (submatches.value_of("TREE_A"), submatches.value_of("TREE_B")) {
+                (None, None) => ("HEAD^", "HEAD"),
+                (Some(tree_a), None) => ("HEAD", tree_a),
+                (Some(tree_a), Some(tree_b)) => (tree_a, tree_b),
+                _ => panic!(),
+            };
             Command::Diff {
-                tree_a: submatches.value_of("TREE_A").unwrap().parse()?,
-                tree_b: submatches.value_of("TREE_B").unwrap().parse()?,
+                tree_a: tree_a.to_string(),
+                tree_b: tree_b.to_string(),
             }
         } else if let Some(submatches) = matches.subcommand_matches("check") {
             ensure_git_dir()?;
