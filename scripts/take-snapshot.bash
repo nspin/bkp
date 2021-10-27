@@ -2,27 +2,38 @@ set -euET -o pipefail
 shopt -s inherit_errexit
 
 # TODO
-# - Disable quoting. See man find(1), section UNUSUAL FILENAMES.
+# - Disable quoting of paths by find. See section "UNUSUAL FILENAMES" of man find(1).
 
 subject="$1"
 out="$2"
 
-subject_file="$out/subject.txt"
-sha256sum_file="$out/sha256sum.txt"
-nodes_file="$out/nodes"
-files_file="$out/files"
-digests_file="$out/digests"
+out_subject="$out/subject.txt"
+out_sha256sum="$out/sha256sum.txt"
+out_nodes="$out/nodes"
+out_files="$out/files"
+out_digests="$out/digests"
+
+if [ ! -d "$subject" ]; then
+    echo "error: '$subject' is not a directory" >&2
+    exit 1
+fi
+
+if [ -e "$out" ]; then
+    echo "error: '$out' already exists" >&2
+    exit 1
+fi
 
 mkdir "$out"
-printf "%s" "$subject" > "$subject_file"
-find "$subject" -fprintf "$nodes_file" '%y %#m %s %P\0%l\0'
-find "$subject" -type f -fprintf "$files_file" '%P\0'
+
+(cd "$subject" && pwd) > "$out_subject"
+
+find "$subject" -fprintf "$out_nodes" '%y %#m %s %P\0%l\0' -a -type f -fprintf "$out_files" '%P\0'
 
 (
     cd "$subject"
     while IFS= read -r -d $'\0' path; do
         sha256sum -bz "$path"
     done
-) < "$files_file" > "$digests_file"
+) < "$out_files" > "$out_digests"
 
-sha256sum -b "$nodes_file" "$digests_file" > "$sha256sum_file"
+sha256sum -b "$out_nodes" "$out_digests" > "$out_sha256sum"
