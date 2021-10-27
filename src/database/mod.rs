@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use anyhow::{Error, Result};
-use git2::{Oid, Repository};
+use git2::{Oid, Repository, Tree, Commit, Signature};
 
 use crate::{shallow_diff, ShallowDifference};
 
@@ -61,5 +61,30 @@ impl Database {
         callback: impl for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), Error>,
     ) -> Result<()> {
         shallow_diff(&self.repository, tree_a, tree_b, callback).map_err(Error::from)
+    }
+
+    pub fn commit_simple(
+        &self,
+        message: &str,
+        tree: &Tree<'_>,
+        parent: &Commit<'_>,
+    ) -> Result<Oid> {
+        let dummy_sig = Signature::now("x", "x@x")?;
+        Ok(self.repository().commit(
+            None,
+            &dummy_sig,
+            &dummy_sig,
+            message,
+            tree,
+            &[parent],
+        )?)
+    }
+
+    pub fn safe_merge(&self,  progress: Oid) -> Result<()> {
+        self.invoke_git(&[
+            "merge".to_owned(),
+            "--ff-only".to_owned(),
+            progress.to_string(),
+        ])
     }
 }
