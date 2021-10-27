@@ -75,10 +75,10 @@ impl Args {
                 let parent = db.repository().head()?.peel_to_commit()?;
                 let big_tree = parent.tree_id();
                 log::info!("adding snapshot to HEAD^{{tree}} ({}) at {}", big_tree, relative_path);
-                db.append(big_tree, &relative_path, mode, tree, false)?;
+                let new_big_tree = db.append(big_tree, &relative_path, mode, tree, false)?;
                 let commit = db.commit_simple(
                     "x",
-                    &db.repository().find_tree(tree)?,
+                    &db.repository().find_tree(new_big_tree)?,
                     &parent,
                 )?;
                 log::info!("new commit is {}. merging --ff-only into HEAD", commit);

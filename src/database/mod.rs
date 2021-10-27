@@ -83,6 +83,7 @@ impl Database {
     pub fn safe_merge(&self, progress: Oid) -> Result<()> {
         self.invoke_git(&[
             "merge".to_owned(),
+            "--quiet".to_owned(),
             "--ff-only".to_owned(),
             progress.to_string(),
         ])
