@@ -6,16 +6,16 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BlobShadow {
-    content_hash: BlobShadowContentSh256,
+    content_hash: BlobShadowContentSha256,
     size: u64,
 }
 
 impl BlobShadow {
-    pub fn new(content_hash: BlobShadowContentSh256, size: u64) -> Self {
+    pub fn new(content_hash: BlobShadowContentSha256, size: u64) -> Self {
         Self { content_hash, size }
     }
 
-    pub fn content_hash(&self) -> &BlobShadowContentSh256 {
+    pub fn content_hash(&self) -> &BlobShadowContentSha256 {
         &self.content_hash
     }
 
@@ -67,11 +67,11 @@ impl FromStr for BlobShadow {
 }
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct BlobShadowContentSh256 {
+pub struct BlobShadowContentSha256 {
     digest: [u8; Self::SHA256_DIGEST_SIZE],
 }
 
-impl BlobShadowContentSh256 {
+impl BlobShadowContentSha256 {
     const SHA256_DIGEST_SIZE: usize = 32;
 
     pub fn new(digest: [u8; Self::SHA256_DIGEST_SIZE]) -> Self {
@@ -95,13 +95,13 @@ impl BlobShadowContentSh256 {
     }
 }
 
-impl fmt::Display for BlobShadowContentSh256 {
+impl fmt::Display for BlobShadowContentSha256 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}", hex::encode(self.digest))
     }
 }
 
-impl FromStr for BlobShadowContentSh256 {
+impl FromStr for BlobShadowContentSha256 {
     type Err = BlobShadowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -148,10 +148,10 @@ mod tests {
 
     #[test]
     fn shadow_content_sha256() {
-        ensure_err::<BlobShadowContentSh256>("");
-        ensure_err::<BlobShadowContentSh256>(&format!(" {}", TEST_HEX_DIGEST));
-        ensure_err::<BlobShadowContentSh256>(&format!("{}0", TEST_HEX_DIGEST));
-        ensure_inverse::<BlobShadowContentSh256>(TEST_HEX_DIGEST);
+        ensure_err::<BlobShadowContentSha256>("");
+        ensure_err::<BlobShadowContentSha256>(&format!(" {}", TEST_HEX_DIGEST));
+        ensure_err::<BlobShadowContentSha256>(&format!("{}0", TEST_HEX_DIGEST));
+        ensure_inverse::<BlobShadowContentSha256>(TEST_HEX_DIGEST);
     }
 
     #[test]

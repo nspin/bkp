@@ -15,7 +15,7 @@ pub use crate::{
         BulkPath, BulkPathComponent, BulkTreeEntryName,
     },
     blob::{
-        BlobShadow, BlobShadowContentSh256,
+        BlobShadow, BlobShadowContentSha256,
     },
     blob_store::{
         RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage,

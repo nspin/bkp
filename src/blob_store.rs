@@ -8,17 +8,17 @@ use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use sha2::{Digest, Sha256};
 
-use crate::BlobShadowContentSh256;
+use crate::BlobShadowContentSha256;
 
 pub trait RealBlobStorage {
-    fn blob_path(&self, blob: &BlobShadowContentSh256) -> PathBuf;
-    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()>;
+    fn blob_path(&self, blob: &BlobShadowContentSha256) -> PathBuf;
+    fn store(&self, blob: &BlobShadowContentSha256, src: &Path) -> Result<()>;
 
-    fn have_blob(&self, blob: &BlobShadowContentSh256) -> bool {
+    fn have_blob(&self, blob: &BlobShadowContentSha256) -> bool {
         self.blob_path(blob).is_file()
     }
 
-    fn check_blob(&self, blob: &BlobShadowContentSh256) -> Result<()> {
+    fn check_blob(&self, blob: &BlobShadowContentSha256) -> Result<()> {
         check_sha256sum(blob, &self.blob_path(blob))
     }
 }
@@ -44,35 +44,35 @@ impl FilesystemRealBlobStorage {
         self.path.join("partial")
     }
 
-    fn blob_relative_path(blob: &BlobShadowContentSh256) -> (String, String) {
+    fn blob_relative_path(blob: &BlobShadowContentSha256) -> (String, String) {
         let mut hex = blob.to_hex();
         let child = hex.split_off(Self::SPLIT);
         (hex, child)
     }
 
-    fn blob_parent(&self, blob: &BlobShadowContentSh256) -> PathBuf {
+    fn blob_parent(&self, blob: &BlobShadowContentSha256) -> PathBuf {
         let (parent, _child) = Self::blob_relative_path(blob);
         self.blob_dir().join(&parent)
     }
 
-    fn partial_path(&self, blob: &BlobShadowContentSh256) -> PathBuf {
+    fn partial_path(&self, blob: &BlobShadowContentSha256) -> PathBuf {
         let (parent, child) = Self::blob_relative_path(blob);
         self.partial_dir().join(&parent).join(&child)
     }
 
-    fn partial_parent(&self, blob: &BlobShadowContentSh256) -> PathBuf {
+    fn partial_parent(&self, blob: &BlobShadowContentSha256) -> PathBuf {
         let (parent, _child) = Self::blob_relative_path(blob);
         self.partial_dir().join(&parent)
     }
 }
 
 impl RealBlobStorage for FilesystemRealBlobStorage {
-    fn blob_path(&self, blob: &BlobShadowContentSh256) -> PathBuf {
+    fn blob_path(&self, blob: &BlobShadowContentSha256) -> PathBuf {
         let (parent, child) = Self::blob_relative_path(blob);
         self.blob_dir().join(&parent).join(&child)
     }
 
-    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()> {
+    fn store(&self, blob: &BlobShadowContentSha256, src: &Path) -> Result<()> {
         if self.have_blob(blob) {
             return Ok(());
         }
@@ -133,17 +133,17 @@ impl MockRealBlobStorage {
 }
 
 impl RealBlobStorage for MockRealBlobStorage {
-    fn blob_path(&self, _: &BlobShadowContentSh256) -> PathBuf {
+    fn blob_path(&self, _: &BlobShadowContentSha256) -> PathBuf {
         self.token_blob_path.clone()
     }
 
-    fn store(&self, blob: &BlobShadowContentSh256, src: &Path) -> Result<()> {
+    fn store(&self, blob: &BlobShadowContentSha256, src: &Path) -> Result<()> {
         check_sha256sum(blob, src)?;
         Ok(())
     }
 }
 
-pub fn sha256sum_coreutils(path: &Path) -> Result<BlobShadowContentSh256> {
+pub fn sha256sum_coreutils(path: &Path) -> Result<BlobShadowContentSha256> {
     lazy_static! {
         static ref RE: Regex =
             Regex::new(r"(?-u)(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
@@ -164,19 +164,19 @@ pub fn sha256sum_coreutils(path: &Path) -> Result<BlobShadowContentSh256> {
 }
 
 #[allow(dead_code)]
-pub fn sha256sum_rust(path: &Path) -> Result<BlobShadowContentSh256> {
+pub fn sha256sum_rust(path: &Path) -> Result<BlobShadowContentSha256> {
     let mut file = OpenOptions::new().read(true).open(path)?;
     let mut hasher = Sha256::new();
     io::copy(&mut file, &mut hasher)?;
     let hash = hasher.finalize();
-    Ok(BlobShadowContentSh256::from_slice(&hash))
+    Ok(BlobShadowContentSha256::from_slice(&hash))
 }
 
-pub fn sha256sum(path: &Path) -> Result<BlobShadowContentSh256> {
+pub fn sha256sum(path: &Path) -> Result<BlobShadowContentSha256> {
     sha256sum_coreutils(path)
 }
 
-fn check_sha256sum(expected: &BlobShadowContentSh256, path: &Path) -> Result<()> {
+fn check_sha256sum(expected: &BlobShadowContentSha256, path: &Path) -> Result<()> {
     let observerd = sha256sum(path)?;
     assert_eq!(expected, &observerd);
     Ok(())
