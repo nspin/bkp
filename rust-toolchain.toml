@@ -1,3 +1,2 @@
 [toolchain]
-channel = "nightly"
-date = "2021-10-20"
+channel = "nightly-2021-10-20"
