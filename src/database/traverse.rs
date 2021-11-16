@@ -4,7 +4,7 @@ use std::str;
 use anyhow::{bail, ensure, Result};
 use git2::{FileMode, ObjectType, Oid, Repository};
 
-use crate::{BlobShadow, BlobShadowContentSha256, BulkPath, BulkTreeEntryName, Database};
+use crate::{BlobShadow, BulkPath, BulkTreeEntryName, Database};
 
 impl Database {
     pub fn traverser<'a, T: TraversalCallbacks>(
@@ -37,17 +37,17 @@ impl Database {
     pub fn unique_blobs(
         &self,
         tree: Oid,
-        callback: impl FnMut(&BulkPath, &BlobShadowContentSha256) -> Result<()>,
+        callback: impl FnMut(&BulkPath, &BlobShadow) -> Result<()>,
     ) -> Result<()> {
         struct UniqueBlobsCallbacks<T> {
             callback: T,
         }
-        impl<T: FnMut(&BulkPath, &BlobShadowContentSha256) -> Result<()>> TraversalCallbacks
+        impl<T: FnMut(&BulkPath, &BlobShadow) -> Result<()>> TraversalCallbacks
             for UniqueBlobsCallbacks<T>
         {
             fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
                 let st_blob = blob.read_blob()?;
-                (self.callback)(blob.path, st_blob.content_hash())?;
+                (self.callback)(blob.path, &st_blob)?;
                 Ok(())
             }
         }

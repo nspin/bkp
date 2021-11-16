@@ -43,6 +43,10 @@ pub enum Command {
     UniqueBlobs {
         tree: String,
     },
+    CheckBlobs {
+        tree: String,
+        deep: bool,
+    },
     Sha256Sum {
         path: PathBuf,
     },
@@ -138,6 +142,11 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(
             SubCommand::with_name("unique-blobs")
                 .arg(Arg::with_name("TREE").default_value("HEAD").index(1)),
+        )
+        .subcommand(
+            SubCommand::with_name("check-blobs")
+                .arg(Arg::with_name("TREE").default_value("HEAD").index(1))
+                .arg(Arg::with_name("deep").long("--deep")),
         )
         .subcommand(
             SubCommand::with_name("sha256sum").arg(Arg::with_name("PATH").required(true).index(1)),
@@ -258,6 +267,13 @@ impl Args {
             ensure_git_dir()?;
             Command::UniqueBlobs {
                 tree: submatches.value_of("TREE").unwrap().to_string(),
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("check-blobs") {
+            ensure_git_dir()?;
+            ensure_blob_store()?;
+            Command::CheckBlobs {
+                tree: submatches.value_of("TREE").unwrap().to_string(),
+                deep: submatches.is_present("deep"),
             }
         } else if let Some(submatches) = matches.subcommand_matches("sha256sum") {
             Command::Sha256Sum {

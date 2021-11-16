@@ -84,7 +84,7 @@ impl Database {
     ) -> Result<()> {
         self.unique_blobs(tree, |path, blob| {
             let src = subject.join(path.to_string());
-            blob_store.store(blob, &src)?;
+            blob_store.store(blob.content_hash(), &src)?;
             Ok(())
         })?;
         Ok(())

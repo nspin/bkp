@@ -4,7 +4,7 @@ use anyhow::Result;
 use git2::{FileMode, Repository};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::{sha256sum, Database, FilesystemRealBlobStorage, ShallowDifferenceSide, Snapshot};
+use crate::{sha256sum, Database, RealBlobStorage, FilesystemRealBlobStorage, ShallowDifferenceSide, Snapshot};
 
 mod args;
 
@@ -112,6 +112,23 @@ impl Args {
                 let tree = db.resolve_treeish(&tree)?;
                 db.unique_blobs(tree, |path, blob| {
                     println!("{} {}", blob, path);
+                    Ok(())
+                })?;
+            }
+            Command::CheckBlobs { tree, deep } => {
+                let db = self.database()?;
+                let blob_store = self.blob_storage()?;
+                let tree = db.resolve_treeish(&tree)?;
+                db.unique_blobs(tree, |path, blob| {
+                    // TODO check size
+                    if !blob_store.have_blob(blob.content_hash()) {
+                        println!("missing blob: {} {}", blob.content_hash(), path);
+                    }
+                    if *deep {
+                        if !blob_store.check_blob(blob.content_hash()).is_ok() {
+                            println!("invalid blob: {} {}", blob.content_hash(), path);
+                        }
+                    }
                     Ok(())
                 })?;
             }
