@@ -1,7 +1,8 @@
-use std::fs::{self, OpenOptions};
+use std::fs::{self, OpenOptions, Permissions};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
@@ -104,6 +105,8 @@ impl RealBlobStorage for FilesystemRealBlobStorage {
         // - macos:
         //      - fclonefileat and fcopyfile
         io::copy(&mut source_file, &mut partial_file)?;
+
+        partial_file.set_permissions(Permissions::from_mode(0o444))?;
 
         check_sha256sum(blob, &partial_path)?;
 
