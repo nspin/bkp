@@ -111,7 +111,7 @@ impl Args {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;
                 db.unique_blobs(tree, |path, blob| {
-                    println!("{} {}", blob, path);
+                    println!("{} {}", blob.content_hash(), path);
                     Ok(())
                 })?;
             }
