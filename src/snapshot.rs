@@ -151,7 +151,7 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
-                r"^(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{3}[0-9]*) (?P<size>[0-9]+) (?P<path>.*)\x00 (?P<target>.*)\x00\n$"
+                r"^(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{3}[0-9]*) (?P<size>([0-9]+|\?)) (?P<path>.*)\x00 (?P<target>.*)\x00\n$"
             )
             .unwrap();
         }
