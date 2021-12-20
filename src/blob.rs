@@ -2,16 +2,18 @@ use std::fmt;
 use std::num::ParseIntError;
 use std::str::{self, FromStr, Utf8Error};
 
+use lazy_static::lazy_static;
+use regex::Regex;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct BlobShadow {
     content_hash: BlobShadowContentSha256,
-    size: u64,
+    size: Option<u64>,
 }
 
 impl BlobShadow {
-    pub fn new(content_hash: BlobShadowContentSha256, size: u64) -> Self {
+    pub fn new(content_hash: BlobShadowContentSha256, size: Option<u64>) -> Self {
         Self { content_hash, size }
     }
 
@@ -19,7 +21,7 @@ impl BlobShadow {
         &self.content_hash
     }
 
-    pub fn size(&self) -> u64 {
+    pub fn size(&self) -> Option<u64> {
         self.size
     }
 
@@ -35,7 +37,11 @@ impl BlobShadow {
 
 impl fmt::Display for BlobShadow {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "sha256 {}\nsize {}\n", self.content_hash, self.size)
+        write!(fmt, "sha256 {}\n", self.content_hash)?;
+        if let Some(size) = self.size {
+            write!(fmt, "size {}\n", size)?;
+        }
+        Ok(())
     }
 }
 
@@ -43,26 +49,23 @@ impl FromStr for BlobShadow {
     type Err = BlobShadowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut it = s.split('\n');
-        let mut line = || it.next().ok_or(Self::Err::MalformedBlobShadow);
-        let content_hash = if let Some(("sha256", value)) = line()?.split_once(' ') {
-            value.parse()?
-        } else {
-            return Err(Self::Err::MalformedBlobShadow);
-        };
-        let size = if let Some(("size", value)) = line()?.split_once(' ') {
-            value.parse().map_err(Self::Err::MalformedBlobShadowSize)?
-        } else {
-            return Err(Self::Err::MalformedBlobShadow);
-        };
-        if !line()?.is_empty() {
-            return Err(Self::Err::MalformedBlobShadow);
+        lazy_static! {
+            static ref RE: Regex = Regex::new(
+                r"^sha256 (?P<sha256>[a-z0-9]{64})\n(size (?P<size>[0-9]+)\n)?$"
+            )
+            .unwrap();
         }
-        if let None = it.next() {
-            Ok(Self { size, content_hash })
-        } else {
-            Err(Self::Err::MalformedBlobShadow)
-        }
+        let caps = RE
+            .captures(s)
+            .ok_or(Self::Err::MalformedBlobShadow)?;
+
+        let content_hash = caps["sha256"].parse()?;
+        let size = caps.name("size").map(|m| m.as_str().parse()).transpose().map_err(Self::Err::MalformedBlobShadowSize)?;
+
+        Ok(Self {
+            content_hash,
+            size,
+        })
     }
 }
 
@@ -161,5 +164,6 @@ mod tests {
         ensure_err::<BlobShadow>(&format!("sha256 {}\nsize \n", TEST_HEX_DIGEST));
         ensure_err::<BlobShadow>(&format!("sha256 {}\r\nsize 123\r\n", TEST_HEX_DIGEST));
         ensure_inverse::<BlobShadow>(&format!("sha256 {}\nsize 123\n", TEST_HEX_DIGEST));
+        ensure_inverse::<BlobShadow>(&format!("sha256 {}\n", TEST_HEX_DIGEST));
     }
 }

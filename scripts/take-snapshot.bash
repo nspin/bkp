@@ -27,7 +27,7 @@ mkdir "$out"
 
 (cd "$subject" && pwd) > "$out_subject"
 
-find "$subject" -fprintf "$out_nodes" '%y %#m %s %P\0%l\0' -a -type f -fprintf "$out_files" '%P\0'
+find "$subject" -fprintf "$out_nodes" '%y %#m %s %P\0 %l\0\n' -a -type f -fprintf "$out_files" '%P\0'
 
 (
     cd "$subject"

@@ -137,7 +137,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
                 let perm = 0o555 | (if *executable { 0o000 } else { 0o111 });
                 let blob = self.repository.find_blob(oid.clone())?;
                 let blob = BlobShadow::from_bytes(blob.content())?;
-                let size = blob.size();
+                let size = blob.size().unwrap_or(0);
                 (kind, perm, size)
             }
             InodeEntry::Link { oid } => {

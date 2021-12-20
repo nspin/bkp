@@ -1,3 +1,4 @@
+#![feature(buf_read_has_data_left)]
 #![feature(exit_status_error)]
 #![feature(iter_intersperse)]
 

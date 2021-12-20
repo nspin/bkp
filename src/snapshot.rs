@@ -129,7 +129,7 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
 struct NodesEntry {
     ty: char, // [dflcbsp]
     mode: u16,
-    size: u64,
+    size: Option<u64>,
     path: String,
     target: String,
 }
@@ -151,24 +151,28 @@ impl<T: io::BufRead> FallibleIterator for NodesEntries<T> {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex = Regex::new(
-                r"(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{3}[0-9]*) (?P<size>[0-9]+) (?P<path>.*)\x00(?P<target>.*)\x00"
+                r"^(?P<type>[dflcbsp]) 0(?P<mode>[0-9]{3}[0-9]*) (?P<size>[0-9]+) (?P<path>.*)\x00 (?P<target>.*)\x00\n$"
             )
             .unwrap();
         }
         let mut buf = vec![];
-        if self.reader.read_until(0, &mut buf)? == 0 {
+        if !self.reader.has_data_left()? {
             return Ok(None);
         }
-        if self.reader.read_until(0, &mut buf)? == 0 {
-            panic!()
-        }
+        assert_ne!(self.reader.read_until(0, &mut buf)?, 0);
+        assert_ne!(self.reader.read_until(0, &mut buf)?, 0);
+        assert_eq!(self.reader.read_until(b'\n', &mut buf)?, 1);
         let caps = RE
             .captures(str::from_utf8(&buf)?)
             .ok_or(anyhow!("regex does not match"))?;
+        let size = match &caps["size"] {
+            "?" => None,
+            s => Some(s.parse()?),
+        };
         Ok(Some(NodesEntry {
             ty: caps["type"].chars().nth(0).unwrap(),
             mode: u16::from_str_radix(&caps["mode"], 8)?,
-            size: caps["size"].parse()?,
+            size,
             path: caps["path"].to_string(),
             target: caps["target"].to_string(),
         }))
@@ -192,7 +196,7 @@ impl<T: io::BufRead> FallibleIterator for DigestsEntries<T> {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         lazy_static! {
             static ref RE: Regex =
-                Regex::new(r"(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00").unwrap();
+                Regex::new(r"^(?P<digest>[a-z0-9]{64}|[?]{64}) \*(?P<path>.*)\x00$").unwrap();
         }
         let mut buf = vec![];
         if self.reader.read_until(0, &mut buf)? == 0 {
