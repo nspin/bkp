@@ -236,7 +236,7 @@ impl Args {
                 relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
                 force: submatches.is_present("force"),
                 remove_after: submatches.is_present("remove_after"),
-                snapshot_dir: submatches.value_of("SNAPSHOT_DIR").unwrap().parse()?,
+                snapshot_dir: submatches.value_of("snapshot_dir").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("mount") {
             ensure_git_dir()?;
