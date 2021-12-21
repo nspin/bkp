@@ -33,6 +33,7 @@ find "$subject" -fprintf "$out_nodes" '%y %#m %s %P\0 %l\0\n' -a -type f -fprint
     cd "$subject"
     while IFS= read -r -d $'\0' path; do
         sha256sum -bz "$path"
+        echo
     done
 ) < "$out_files" > "$out_digests"
 
