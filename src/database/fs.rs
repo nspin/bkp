@@ -76,8 +76,32 @@ pub struct DatabaseFilesystem<'a, T> {
     inodes: BTreeMap<Inode, InodeEntry>,
     family_tree: BTreeMap<(Inode, usize), Inode>,
     next_inode: Inode,
-    file_handles: BTreeMap<Inode, File>,
+    file_handles: BTreeMap<Inode, SharedFile>,
     blob_store: T,
+}
+
+struct SharedFile {
+    file: File,
+    reference_count: usize,
+}
+
+impl SharedFile {
+
+    fn new(file: File) -> Self {
+        Self {
+            file,
+            reference_count: 1,
+        }
+    }
+
+    fn increment(&mut self) {
+        self.reference_count += 1;
+    }
+
+    fn decrement(&mut self) -> bool {
+        self.reference_count -= 1;
+        self.reference_count > 0
+    }
 }
 
 impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
@@ -174,24 +198,25 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
     }
 
     fn open_blob(&mut self, ino: u64) -> Result<()> {
-        if self.file_handles.contains_key(&ino) {
-            bail!("");
+        if let Some(shared) = self.file_handles.get_mut(&ino) {
+            shared.increment();
+            return Ok(());
         }
         let oid = match self.inodes.get(&ino).unwrap() {
             InodeEntry::File { oid, .. } => oid,
-            _ => bail!(""),
+            _ => bail!("not a file"),
         };
         let blob = self.repository.find_blob(oid.clone())?;
         let blob = BlobShadow::from_bytes(blob.content())?;
         let blob_path = self.blob_store.blob_path(&blob.content_hash());
         let file = OpenOptions::new().read(true).open(blob_path)?;
-        self.file_handles.insert(ino, file);
+        self.file_handles.insert(ino, SharedFile::new(file));
         Ok(())
     }
 
     fn close_blob(&mut self, ino: u64) -> Result<()> {
-        if self.file_handles.remove(&ino).is_none() {
-            bail!("");
+        if !self.file_handles.get_mut(&ino).unwrap().decrement() {
+            self.file_handles.remove(&ino);
         }
         Ok(())
     }
@@ -342,7 +367,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
         _lock_owner: Option<u64>,
         reply: ReplyData,
     ) {
-        let file = self.file_handles.get(&ino).unwrap();
+        let file = &mut self.file_handles.get_mut(&ino).unwrap().file;
         let mut buf = vec![0u8; size.try_into().unwrap()];
         let n = unsafe {
             libc::pread(
