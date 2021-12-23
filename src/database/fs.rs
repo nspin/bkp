@@ -134,7 +134,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
         let (kind, perm, size) = match self.inodes.get(&ino).unwrap() {
             InodeEntry::File { oid, executable } => {
                 let kind = FileType::RegularFile;
-                let perm = 0o555 | (if *executable { 0o000 } else { 0o111 });
+                let perm = 0o444 | (if *executable { 0o000 } else { 0o111 });
                 let blob = self.repository.find_blob(oid.clone())?;
                 let blob = BlobShadow::from_bytes(blob.content())?;
                 let size = blob.size().unwrap_or(0);
