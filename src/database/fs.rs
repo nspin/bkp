@@ -86,7 +86,6 @@ struct SharedFile {
 }
 
 impl SharedFile {
-
     fn new(file: File) -> Self {
         Self {
             file,

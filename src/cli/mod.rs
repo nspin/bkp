@@ -4,7 +4,10 @@ use anyhow::Result;
 use git2::{FileMode, Repository};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::{sha256sum, Database, RealBlobStorage, FilesystemRealBlobStorage, ShallowDifferenceSide, Snapshot};
+use crate::{
+    sha256sum, Database, FilesystemRealBlobStorage, RealBlobStorage, ShallowDifferenceSide,
+    Snapshot,
+};
 
 mod args;
 

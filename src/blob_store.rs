@@ -1,8 +1,8 @@
 use std::fs::{self, OpenOptions, Permissions};
 use std::io;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;

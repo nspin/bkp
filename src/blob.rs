@@ -50,22 +50,20 @@ impl FromStr for BlobShadow {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref RE: Regex = Regex::new(
-                r"^sha256 (?P<sha256>[a-z0-9]{64})\n(size (?P<size>[0-9]+)\n)?$"
-            )
-            .unwrap();
+            static ref RE: Regex =
+                Regex::new(r"^sha256 (?P<sha256>[a-z0-9]{64})\n(size (?P<size>[0-9]+)\n)?$")
+                    .unwrap();
         }
-        let caps = RE
-            .captures(s)
-            .ok_or(Self::Err::MalformedBlobShadow)?;
+        let caps = RE.captures(s).ok_or(Self::Err::MalformedBlobShadow)?;
 
         let content_hash = caps["sha256"].parse()?;
-        let size = caps.name("size").map(|m| m.as_str().parse()).transpose().map_err(Self::Err::MalformedBlobShadowSize)?;
+        let size = caps
+            .name("size")
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .map_err(Self::Err::MalformedBlobShadowSize)?;
 
-        Ok(Self {
-            content_hash,
-            size,
-        })
+        Ok(Self { content_hash, size })
     }
 }
 
