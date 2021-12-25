@@ -167,6 +167,15 @@ impl Args {
                 let new_tree = db.append(big_tree, &relative_path, mode, object, *force)?;
                 println!("{}", new_tree)
             }
+            Command::Remove {
+                big_tree,
+                relative_path,
+            } => {
+                let db = self.database()?;
+                let big_tree = db.resolve_treeish(&big_tree)?;
+                let new_tree = db.remove(big_tree, &relative_path)?;
+                println!("{}", new_tree)
+            }
             Command::AddToIndex {
                 mode,
                 tree,

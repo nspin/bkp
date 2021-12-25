@@ -6,6 +6,7 @@ use git2::{Commit, Oid, Repository, Signature, Tree};
 use crate::{shallow_diff, ShallowDifference};
 
 mod append;
+mod remove;
 mod traverse;
 mod snapshot;
 mod index;

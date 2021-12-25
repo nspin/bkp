@@ -68,6 +68,10 @@ pub enum Command {
         object: String,
         force: bool,
     },
+    Remove {
+        big_tree: String,
+        relative_path: BulkPath,
+    },
     AddToIndex {
         mode: String,
         tree: String,
@@ -177,6 +181,11 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .arg(Arg::with_name("OBJECT").required(true).index(2))
                 .arg(Arg::with_name("RELATIVE_PATH").required(true).index(3))
                 .arg(Arg::with_name("BIG_TREE").default_value("HEAD").index(4)),
+        )
+        .subcommand(
+            SubCommand::with_name("remove")
+                .arg(Arg::with_name("RELATIVE_PATH").required(true).index(1))
+                .arg(Arg::with_name("BIG_TREE").default_value("HEAD").index(2)),
         )
         .subcommand(
             SubCommand::with_name("add-to-index")
@@ -304,6 +313,12 @@ impl Args {
                 mode: submatches.value_of("MODE").unwrap().parse()?,
                 object: submatches.value_of("OBJECT").unwrap().parse()?,
                 force: submatches.is_present("force"),
+            }
+        } else if let Some(submatches) = matches.subcommand_matches("remove") {
+            ensure_git_dir()?;
+            Command::Remove {
+                big_tree: submatches.value_of("BIG_TREE").unwrap().parse()?,
+                relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("add-to-index") {
             ensure_git_dir()?;
