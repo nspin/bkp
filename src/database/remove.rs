@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Result};
 use git2::Oid;
 
-use crate::{BulkPath, BulkPathComponent, Database};
+use crate::{ShadowPath, ShadowPathComponent, Database};
 
 impl Database {
     pub fn remove(
         &self,
         big_tree: Oid,
-        path: &BulkPath, // precondition: non-empty
+        path: &ShadowPath, // precondition: non-empty
     ) -> Result<Oid> {
         self.remove_inner(self.empty_blob_oid()?, big_tree, path.components())
     }
@@ -16,7 +16,7 @@ impl Database {
         &self,
         empty_blob_oid: Oid,
         big_tree: Oid,
-        path: &[BulkPathComponent],
+        path: &[ShadowPathComponent],
     ) -> Result<Oid> {
         let orig = self.repository().find_tree(big_tree)?;
         let mut builder = self.repository().treebuilder(Some(&orig))?;

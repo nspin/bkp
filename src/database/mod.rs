@@ -3,7 +3,7 @@ use std::process::Command;
 use anyhow::{Error, Result};
 use git2::{Commit, Oid, Repository, Signature, Tree};
 
-use crate::{shallow_diff, ShallowDifference};
+use crate::{shallow_diff, ShallowDiff};
 
 mod append;
 mod remove;
@@ -13,7 +13,7 @@ mod index;
 mod fs;
 
 pub use traverse::{
-    TraversalCallbacks, Traverser, Visit, VisitBlob, VisitLink, VisitTree, VisitTreeDecision,
+    TraversalCallbacks, Traverser, Visit, VisitShadow, VisitLink, VisitTree, VisitTreeDecision,
 };
 
 pub struct Database {
@@ -59,7 +59,7 @@ impl Database {
         &self,
         tree_a: Oid,
         tree_b: Oid,
-        callback: impl for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), Error>,
+        callback: impl for<'b> FnMut(&ShallowDiff<'b>) -> Result<(), Error>,
     ) -> Result<()> {
         shallow_diff(&self.repository, tree_a, tree_b, callback).map_err(Error::from)
     }

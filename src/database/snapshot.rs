@@ -6,7 +6,7 @@ use fallible_iterator::{FallibleIterator, Peekable};
 use git2::{FileMode, Oid};
 
 use crate::{
-    BulkTreeEntryName, Database, RealBlobStorage, Snapshot, SnapshotEntries, SnapshotEntry,
+    ShadowTreeEntryName, Database, Substance, Snapshot, SnapshotEntries, SnapshotEntry,
     SnapshotEntryValue,
 };
 
@@ -28,7 +28,7 @@ impl Database {
     ) -> Result<(FileMode, Oid)> {
         Ok(match &entry.value {
             SnapshotEntryValue::File {
-                blob_shadow,
+                shadow,
                 executable,
             } => {
                 let mode = if *executable {
@@ -37,7 +37,7 @@ impl Database {
                     FileMode::Blob
                 };
                 let mut writer = self.repository().blob_writer(None)?;
-                writer.write_all(&blob_shadow.to_bytes())?;
+                writer.write_all(&shadow.to_bytes())?;
                 let oid = writer.commit()?;
                 (mode, oid)
             }
@@ -53,7 +53,7 @@ impl Database {
                 let mode = FileMode::Tree;
                 let mut builder = self.repository().treebuilder(None)?;
                 builder.insert(
-                    BulkTreeEntryName::Marker.encode(),
+                    ShadowTreeEntryName::Marker.encode(),
                     empty_blob_oid,
                     FileMode::Blob.into(),
                 )?;
@@ -78,11 +78,11 @@ impl Database {
 
     pub fn store_snapshot(
         &self,
-        blob_store: &impl RealBlobStorage,
+        blob_store: &impl Substance,
         tree: Oid,
         subject: &Path,
     ) -> Result<()> {
-        self.unique_blobs(tree, |path, blob| {
+        self.unique_shadows(tree, |path, blob| {
             let src = subject.join(path.to_string());
             blob_store.store(blob.content_hash(), &src)?;
             Ok(())

@@ -6,7 +6,7 @@ use std::string::ToString;
 use anyhow::{anyhow, Result};
 use clap::{App, Arg, ArgMatches, SubCommand};
 
-use crate::BulkPath;
+use crate::ShadowPath;
 
 const ENV_GIT_DIR: &str = "GIT_DIR";
 const ENV_BLOB_STORE: &str = "BULK_BLOB_STORE";
@@ -24,7 +24,7 @@ pub struct Args {
 pub enum Command {
     Snapshot {
         subject: PathBuf,
-        relative_path: BulkPath,
+        relative_path: ShadowPath,
         force: bool,
         remove_after: bool,
         snapshot_dir: PathBuf,
@@ -63,19 +63,19 @@ pub enum Command {
     },
     Append {
         big_tree: String,
-        relative_path: BulkPath,
+        relative_path: ShadowPath,
         mode: String,
         object: String,
         force: bool,
     },
     Remove {
         big_tree: String,
-        relative_path: BulkPath,
+        relative_path: ShadowPath,
     },
     AddToIndex {
         mode: String,
         tree: String,
-        relative_path: BulkPath,
+        relative_path: ShadowPath,
     },
 }
 

@@ -1,13 +1,13 @@
 use anyhow::{bail, Result};
 use git2::{FileMode, Oid};
 
-use crate::{BulkPath, BulkPathComponent, BulkTreeEntryName, Database};
+use crate::{ShadowPath, ShadowPathComponent, ShadowTreeEntryName, Database};
 
 impl Database {
     pub fn append(
         &self,
         big_tree: Oid,
-        path: &BulkPath, // precondition: non-empty
+        path: &ShadowPath, // precondition: non-empty
         mode: FileMode,
         object: Oid,
         can_replace: bool,
@@ -26,7 +26,7 @@ impl Database {
         &self,
         empty_blob_oid: Oid,
         big_tree: Oid,
-        path: &[BulkPathComponent],
+        path: &[ShadowPathComponent],
         mode: FileMode,
         object: Oid,
         can_replace: bool,
@@ -59,13 +59,13 @@ impl Database {
     fn append_inner_create(
         &self,
         empty_blob_oid: Oid,
-        path: &[BulkPathComponent],
+        path: &[ShadowPathComponent],
         mode: FileMode,
         object: Oid,
     ) -> Result<Oid> {
         let mut builder = self.repository().treebuilder(None)?;
         builder.insert(
-            BulkTreeEntryName::Marker.encode(),
+            ShadowTreeEntryName::Marker.encode(),
             self.empty_blob_oid()?,
             FileMode::Blob.into(),
         )?;

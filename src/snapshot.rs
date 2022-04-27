@@ -11,7 +11,7 @@ use fallible_iterator::FallibleIterator;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::{BlobShadow, BulkPath};
+use crate::{Shadow, ShadowPath};
 
 const TAKE_SNAPSHOT_SCRIPT: &'static [u8] = include_bytes!("../scripts/take-snapshot.bash");
 
@@ -73,14 +73,14 @@ impl<'a> Snapshot<'a> {
 
 #[derive(Clone, Debug)]
 pub struct SnapshotEntry {
-    pub path: BulkPath,
+    pub path: ShadowPath,
     pub value: SnapshotEntryValue,
 }
 
 #[derive(Clone, Debug)]
 pub enum SnapshotEntryValue {
     File {
-        blob_shadow: BlobShadow,
+        shadow: Shadow,
         executable: bool,
     },
     Link {
@@ -110,7 +110,7 @@ impl<T: io::BufRead> FallibleIterator for SnapshotEntries<T> {
                     let digest_line = self.digests_entries.next()?.unwrap();
                     assert_eq!(node_line.path, digest_line.path);
                     SnapshotEntryValue::File {
-                        blob_shadow: BlobShadow::new(digest_line.digest.parse()?, node_line.size),
+                        shadow: Shadow::new(digest_line.digest.parse()?, node_line.size),
                         executable: node_line.is_executable(),
                     }
                 }

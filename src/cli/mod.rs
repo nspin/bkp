@@ -5,7 +5,7 @@ use git2::{FileMode, Repository};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::{
-    sha256sum, Database, FilesystemRealBlobStorage, RealBlobStorage, ShallowDifferenceSide,
+    sha256sum, Database, FilesystemSubstance, Substance, ShallowDiffSide,
     Snapshot,
 };
 
@@ -25,9 +25,9 @@ impl Args {
         Ok(Database::new(Repository::open_bare(git_dir)?))
     }
 
-    fn blob_storage(&self) -> Result<FilesystemRealBlobStorage> {
+    fn blob_storage(&self) -> Result<FilesystemSubstance> {
         let blob_store = self.blob_store.as_ref().unwrap();
-        Ok(FilesystemRealBlobStorage::new(blob_store))
+        Ok(FilesystemSubstance::new(blob_store))
     }
 
     fn apply_verbosity(&self) {
@@ -96,8 +96,8 @@ impl Args {
                 let mut stdout = StandardStream::stdout(ColorChoice::Always);
                 db.shallow_diff(tree_a, tree_b, |difference| {
                     let color = match difference.side {
-                        ShallowDifferenceSide::A => Color::Red,
-                        ShallowDifferenceSide::B => Color::Green,
+                        ShallowDiffSide::A => Color::Red,
+                        ShallowDiffSide::B => Color::Green,
                     };
                     stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
                     writeln!(&mut stdout, "{}", difference)?;
@@ -113,7 +113,7 @@ impl Args {
             Command::UniqueBlobs { tree } => {
                 let db = self.database()?;
                 let tree = db.resolve_treeish(&tree)?;
-                db.unique_blobs(tree, |path, blob| {
+                db.unique_shadows(tree, |path, blob| {
                     println!("{} {}", blob.content_hash(), path);
                     Ok(())
                 })?;
@@ -122,7 +122,7 @@ impl Args {
                 let db = self.database()?;
                 let blob_store = self.blob_storage()?;
                 let tree = db.resolve_treeish(&tree)?;
-                db.unique_blobs(tree, |path, blob| {
+                db.unique_shadows(tree, |path, blob| {
                     // TODO check size
                     if !blob_store.have_blob(blob.content_hash()) {
                         println!("missing blob: {} {}", blob.content_hash(), path);

@@ -17,7 +17,7 @@ use git2::{FileMode, ObjectType, Oid, Repository, TreeEntry};
 use libc::{EINVAL, ENOENT};
 use log::error;
 
-use crate::{BlobShadow, BulkPathComponent, BulkTreeEntryName, Database, RealBlobStorage};
+use crate::{Shadow, ShadowPathComponent, ShadowTreeEntryName, Database, Substance};
 
 const FS_NAME: &str = "st";
 
@@ -26,7 +26,7 @@ impl Database {
         &self,
         tree: Oid,
         mountpoint: impl AsRef<Path>,
-        blob_store: impl RealBlobStorage,
+        blob_store: impl Substance,
     ) -> Result<()> {
         let options = &[
             MountOption::RO,
@@ -103,7 +103,7 @@ impl SharedFile {
     }
 }
 
-impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
+impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
     pub fn new(repository: &'a Repository, tree: Oid, blob_store: T) -> Self {
         Self {
             repository,
@@ -159,7 +159,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
                 let kind = FileType::RegularFile;
                 let perm = 0o444 | (if *executable { 0o000 } else { 0o111 });
                 let blob = self.repository.find_blob(oid.clone())?;
-                let blob = BlobShadow::from_bytes(blob.content())?;
+                let blob = Shadow::from_bytes(blob.content())?;
                 let size = blob.size().unwrap_or(0);
                 (kind, perm, size)
             }
@@ -206,7 +206,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
             _ => bail!("not a file"),
         };
         let blob = self.repository.find_blob(oid.clone())?;
-        let blob = BlobShadow::from_bytes(blob.content())?;
+        let blob = Shadow::from_bytes(blob.content())?;
         let blob_path = self.blob_store.blob_path(&blob.content_hash());
         let file = OpenOptions::new().read(true).open(blob_path)?;
         self.file_handles.insert(ino, SharedFile::new(file));
@@ -221,7 +221,7 @@ impl<'a, T: RealBlobStorage> DatabaseFilesystem<'a, T> {
     }
 }
 
-impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
+impl<'a, T: Substance> Filesystem for DatabaseFilesystem<'a, T> {
     fn lookup(&mut self, _req: &Request, parent: u64, name: &OsStr, reply: ReplyEntry) {
         let oid = fry!(
             reply,
@@ -237,7 +237,7 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
         let entry_name = name
             .to_str()
             .unwrap()
-            .parse::<BulkPathComponent>()
+            .parse::<ShadowPathComponent>()
             .unwrap()
             .encode();
         for (i, entry) in tree.iter().enumerate() {
@@ -284,9 +284,9 @@ impl<'a, T: RealBlobStorage> Filesystem for DatabaseFilesystem<'a, T> {
         let entries = always
             .into_iter()
             .chain(tree.iter().enumerate().map(|(i, entry)| {
-                let name = match BulkTreeEntryName::decode(entry.name().unwrap()).unwrap() {
-                    BulkTreeEntryName::Marker => return Ok(None),
-                    BulkTreeEntryName::Child(child) => child.to_string(),
+                let name = match ShadowTreeEntryName::decode(entry.name().unwrap()).unwrap() {
+                    ShadowTreeEntryName::Marker => return Ok(None),
+                    ShadowTreeEntryName::Child(child) => child.to_string(),
                 };
                 let ino = match self.family_tree.get(&(ino, i)) {
                     Some(ino) => *ino,

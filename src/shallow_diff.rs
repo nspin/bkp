@@ -5,18 +5,18 @@ use std::str::{self, Utf8Error};
 
 use git2::{Error, FileMode, Oid, Repository, TreeEntry, TreeIter};
 
-pub struct ShallowDifference<'a> {
+pub struct ShallowDiff<'a> {
     pub parent: &'a [Vec<u8>],
-    pub side: &'a ShallowDifferenceSide,
+    pub side: &'a ShallowDiffSide,
     pub mode: i32,
     pub oid: Oid,
     pub name: &'a [u8],
 }
 
-impl<'a> ShallowDifference<'a> {
+impl<'a> ShallowDiff<'a> {
     fn new(
         parent: &'a [Vec<u8>],
-        side: &'a ShallowDifferenceSide,
+        side: &'a ShallowDiffSide,
         entry: &'a TreeEntry<'a>,
     ) -> Self {
         Self {
@@ -39,21 +39,21 @@ impl<'a> ShallowDifference<'a> {
     }
 }
 
-pub enum ShallowDifferenceSide {
+pub enum ShallowDiffSide {
     A,
     B,
 }
 
-impl fmt::Display for ShallowDifferenceSide {
+impl fmt::Display for ShallowDiffSide {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ShallowDifferenceSide::A => write!(fmt, "-"),
-            ShallowDifferenceSide::B => write!(fmt, "+"),
+            ShallowDiffSide::A => write!(fmt, "-"),
+            ShallowDiffSide::B => write!(fmt, "+"),
         }
     }
 }
 
-impl<'a> fmt::Display for ShallowDifference<'a> {
+impl<'a> fmt::Display for ShallowDiff<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let path = self.render_path().map_err(|_| fmt::Error)?;
         write!(fmt, "{} {:06o} {} {}", self.side, self.mode, self.oid, path)
@@ -64,7 +64,7 @@ pub fn shallow_diff<'a, E: From<Error> + 'static>(
     repository: &'a Repository,
     tree_a: Oid,
     tree_b: Oid,
-    callback: impl for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), E>,
+    callback: impl for<'b> FnMut(&ShallowDiff<'b>) -> Result<(), E>,
 ) -> Result<(), E> {
     let mut differ = Differ {
         repository,
@@ -84,7 +84,7 @@ struct Differ<'a, T, E> {
 
 impl<'a, T, E> Differ<'a, T, E>
 where
-    T: for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), E>,
+    T: for<'b> FnMut(&ShallowDiff<'b>) -> Result<(), E>,
     E: From<Error> + 'static,
 {
     fn diff_inner(&mut self, tree_a: Oid, tree_b: Oid) -> Result<(), E> {
@@ -103,11 +103,11 @@ where
                     break;
                 }
                 (Some(entry_a), None) => {
-                    self.exhaust(&ShallowDifferenceSide::A, &entry_a, &mut it_a)?;
+                    self.exhaust(&ShallowDiffSide::A, &entry_a, &mut it_a)?;
                     opt_entry_a = None;
                 }
                 (None, Some(entry_b)) => {
-                    self.exhaust(&ShallowDifferenceSide::B, &entry_b, &mut it_b)?;
+                    self.exhaust(&ShallowDiffSide::B, &entry_b, &mut it_b)?;
                     opt_entry_b = None;
                 }
                 (Some(entry_a), Some(entry_b)) => {
@@ -115,7 +115,7 @@ where
                         Ordering::Less => {
                             opt_entry_a = self.report_until(
                                 &entry_b,
-                                &ShallowDifferenceSide::A,
+                                &ShallowDiffSide::A,
                                 &entry_a,
                                 &mut it_a,
                             )?;
@@ -123,7 +123,7 @@ where
                         Ordering::Greater => {
                             opt_entry_b = self.report_until(
                                 &entry_a,
-                                &ShallowDifferenceSide::B,
+                                &ShallowDiffSide::B,
                                 &entry_b,
                                 &mut it_b,
                             )?;
@@ -144,8 +144,8 @@ where
                                 false
                             };
                             if news {
-                                self.report(&ShallowDifferenceSide::A, &entry_a)?;
-                                self.report(&ShallowDifferenceSide::B, &entry_b)?;
+                                self.report(&ShallowDiffSide::A, &entry_a)?;
+                                self.report(&ShallowDiffSide::B, &entry_b)?;
                             }
                             opt_entry_a = it_a.next();
                             opt_entry_b = it_b.next();
@@ -159,7 +159,7 @@ where
 
     fn exhaust<'b>(
         &mut self,
-        side: &'b ShallowDifferenceSide,
+        side: &'b ShallowDiffSide,
         current: &'b TreeEntry,
         it: &'b mut TreeIter,
     ) -> Result<(), E>
@@ -176,7 +176,7 @@ where
     fn report_until<'b>(
         &mut self,
         target_entry: &TreeEntry,
-        side: &'b ShallowDifferenceSide,
+        side: &'b ShallowDiffSide,
         current: &'b TreeEntry,
         it: &'b mut TreeIter,
     ) -> Result<Option<TreeEntry<'static>>, E>
@@ -194,10 +194,10 @@ where
         Ok(None)
     }
 
-    fn report<'b>(&mut self, side: &'b ShallowDifferenceSide, entry: &'b TreeEntry) -> Result<(), E>
+    fn report<'b>(&mut self, side: &'b ShallowDiffSide, entry: &'b TreeEntry) -> Result<(), E>
     where
         'a: 'b,
     {
-        (self.callback)(&ShallowDifference::new(&self.path, side, entry))
+        (self.callback)(&ShallowDiff::new(&self.path, side, entry))
     }
 }

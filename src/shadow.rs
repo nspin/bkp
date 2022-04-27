@@ -7,17 +7,17 @@ use regex::Regex;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct BlobShadow {
-    content_hash: BlobShadowContentSha256,
+pub struct Shadow {
+    content_hash: ContentSha256,
     size: Option<u64>,
 }
 
-impl BlobShadow {
-    pub fn new(content_hash: BlobShadowContentSha256, size: Option<u64>) -> Self {
+impl Shadow {
+    pub fn new(content_hash: ContentSha256, size: Option<u64>) -> Self {
         Self { content_hash, size }
     }
 
-    pub fn content_hash(&self) -> &BlobShadowContentSha256 {
+    pub fn content_hash(&self) -> &ContentSha256 {
         &self.content_hash
     }
 
@@ -29,13 +29,13 @@ impl BlobShadow {
         self.to_string().as_bytes().to_vec()
     }
 
-    pub fn from_bytes(shadow_content: &[u8]) -> Result<Self, BlobShadowError> {
-        let s = str::from_utf8(shadow_content).map_err(BlobShadowError::Utf8Error)?;
+    pub fn from_bytes(shadow_content: &[u8]) -> Result<Self, ShadowError> {
+        let s = str::from_utf8(shadow_content).map_err(ShadowError::Utf8Error)?;
         s.parse()
     }
 }
 
-impl fmt::Display for BlobShadow {
+impl fmt::Display for Shadow {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "sha256 {}\n", self.content_hash)?;
         if let Some(size) = self.size {
@@ -45,8 +45,8 @@ impl fmt::Display for BlobShadow {
     }
 }
 
-impl FromStr for BlobShadow {
-    type Err = BlobShadowError;
+impl FromStr for Shadow {
+    type Err = ShadowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
@@ -54,25 +54,25 @@ impl FromStr for BlobShadow {
                 Regex::new(r"^sha256 (?P<sha256>[a-z0-9]{64})\n(size (?P<size>[0-9]+)\n)?$")
                     .unwrap();
         }
-        let caps = RE.captures(s).ok_or(Self::Err::MalformedBlobShadow)?;
+        let caps = RE.captures(s).ok_or(Self::Err::MalformedShadow)?;
 
         let content_hash = caps["sha256"].parse()?;
         let size = caps
             .name("size")
             .map(|m| m.as_str().parse())
             .transpose()
-            .map_err(Self::Err::MalformedBlobShadowSize)?;
+            .map_err(Self::Err::MalformedShadowSize)?;
 
         Ok(Self { content_hash, size })
     }
 }
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct BlobShadowContentSha256 {
+pub struct ContentSha256 {
     digest: [u8; Self::SHA256_DIGEST_SIZE],
 }
 
-impl BlobShadowContentSha256 {
+impl ContentSha256 {
     const SHA256_DIGEST_SIZE: usize = 32;
 
     pub fn new(digest: [u8; Self::SHA256_DIGEST_SIZE]) -> Self {
@@ -91,32 +91,32 @@ impl BlobShadowContentSha256 {
         self.to_string()
     }
 
-    pub fn from_hex(s: &str) -> Result<Self, BlobShadowError> {
+    pub fn from_hex(s: &str) -> Result<Self, ShadowError> {
         Self::from_str(s)
     }
 }
 
-impl fmt::Display for BlobShadowContentSha256 {
+impl fmt::Display for ContentSha256 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}", hex::encode(self.digest))
     }
 }
 
-impl FromStr for BlobShadowContentSha256 {
-    type Err = BlobShadowError;
+impl FromStr for ContentSha256 {
+    type Err = ShadowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut digest = [0; Self::SHA256_DIGEST_SIZE];
         hex::decode_to_slice(s, &mut digest)
-            .map_err(BlobShadowError::MalformedBlobShadowContentHashHex)?;
+            .map_err(ShadowError::MalformedShadowContentHashHex)?;
         Ok(Self::new(digest))
     }
 }
 
 #[derive(Error, Debug)]
-pub enum BlobShadowError {
+pub enum ShadowError {
     #[error("malformed")]
-    MalformedBlobShadow,
+    MalformedShadow,
     #[error("error converting from utf-8: {0}")]
     Utf8Error(
         #[source]
@@ -124,9 +124,9 @@ pub enum BlobShadowError {
         Utf8Error,
     ),
     #[error("malformed content hash hex: {0}")]
-    MalformedBlobShadowContentHashHex(#[source] hex::FromHexError),
+    MalformedShadowContentHashHex(#[source] hex::FromHexError),
     #[error("malformed size")]
-    MalformedBlobShadowSize(#[source] ParseIntError),
+    MalformedShadowSize(#[source] ParseIntError),
 }
 
 #[cfg(test)]
@@ -149,19 +149,19 @@ mod tests {
 
     #[test]
     fn shadow_content_sha256() {
-        ensure_err::<BlobShadowContentSha256>("");
-        ensure_err::<BlobShadowContentSha256>(&format!(" {}", TEST_HEX_DIGEST));
-        ensure_err::<BlobShadowContentSha256>(&format!("{}0", TEST_HEX_DIGEST));
-        ensure_inverse::<BlobShadowContentSha256>(TEST_HEX_DIGEST);
+        ensure_err::<ContentSha256>("");
+        ensure_err::<ContentSha256>(&format!(" {}", TEST_HEX_DIGEST));
+        ensure_err::<ContentSha256>(&format!("{}0", TEST_HEX_DIGEST));
+        ensure_inverse::<ContentSha256>(TEST_HEX_DIGEST);
     }
 
     #[test]
     fn shadow() {
-        ensure_err::<BlobShadow>("");
-        ensure_err::<BlobShadow>(&format!("sha256 {}\nsize 123", TEST_HEX_DIGEST));
-        ensure_err::<BlobShadow>(&format!("sha256 {}\nsize \n", TEST_HEX_DIGEST));
-        ensure_err::<BlobShadow>(&format!("sha256 {}\r\nsize 123\r\n", TEST_HEX_DIGEST));
-        ensure_inverse::<BlobShadow>(&format!("sha256 {}\nsize 123\n", TEST_HEX_DIGEST));
-        ensure_inverse::<BlobShadow>(&format!("sha256 {}\n", TEST_HEX_DIGEST));
+        ensure_err::<Shadow>("");
+        ensure_err::<Shadow>(&format!("sha256 {}\nsize 123", TEST_HEX_DIGEST));
+        ensure_err::<Shadow>(&format!("sha256 {}\nsize \n", TEST_HEX_DIGEST));
+        ensure_err::<Shadow>(&format!("sha256 {}\r\nsize 123\r\n", TEST_HEX_DIGEST));
+        ensure_inverse::<Shadow>(&format!("sha256 {}\nsize 123\n", TEST_HEX_DIGEST));
+        ensure_inverse::<Shadow>(&format!("sha256 {}\n", TEST_HEX_DIGEST));
     }
 }

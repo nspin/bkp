@@ -3,8 +3,8 @@
 #![feature(iter_intersperse)]
 
 mod paths;
-mod blob;
-mod blob_store;
+mod shadow;
+mod substance;
 mod snapshot;
 mod shallow_diff;
 mod database;
@@ -13,26 +13,26 @@ mod cli;
 #[rustfmt::skip]
 pub use crate::{
     paths::{
-        BulkPath, BulkPathComponent, BulkTreeEntryName,
+        ShadowPath, ShadowPathComponent, ShadowTreeEntryName,
     },
-    blob::{
-        BlobShadow, BlobShadowContentSha256,
+    shadow::{
+        Shadow, ContentSha256,
     },
-    blob_store::{
-        RealBlobStorage, FilesystemRealBlobStorage, MockRealBlobStorage,
+    substance::{
+        Substance, FilesystemSubstance, MockSubstance,
         sha256sum,
     },
     snapshot::{
         Snapshot, SnapshotEntries, SnapshotEntry, SnapshotEntryValue,
     },
     shallow_diff::{
-        ShallowDifference, ShallowDifferenceSide,
+        ShallowDiff, ShallowDiffSide,
         shallow_diff,
     },
     database::{
         Database,
         TraversalCallbacks, Traverser,
-        Visit, VisitBlob, VisitLink, VisitTree, VisitTreeDecision,
+        Visit, VisitShadow, VisitLink, VisitTree, VisitTreeDecision,
     },
     cli::{
         cli_main,

@@ -4,7 +4,7 @@ use std::str;
 use anyhow::{bail, ensure, Result};
 use git2::{FileMode, ObjectType, Oid, Repository};
 
-use crate::{BlobShadow, BulkPath, BulkTreeEntryName, Database};
+use crate::{Shadow, ShadowPath, ShadowTreeEntryName, Database};
 
 impl Database {
     pub fn traverser<'a, T: TraversalCallbacks>(
@@ -21,12 +21,12 @@ impl Database {
     pub fn check(&self, tree: Oid) -> Result<()> {
         struct CheckCallbacks;
         impl TraversalCallbacks for CheckCallbacks {
-            fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
-                let _ = blob.read_blob()?;
+            fn on_shadow(&mut self, visit: &Visit<VisitShadow>) -> Result<()> {
+                let _ = visit.read_shadow()?;
                 Ok(())
             }
-            fn on_link(&mut self, link: &Visit<VisitLink>) -> Result<()> {
-                let _ = link.read_link()?;
+            fn on_link(&mut self, visit: &Visit<VisitLink>) -> Result<()> {
+                let _ = visit.read_link()?;
                 Ok(())
             }
         }
@@ -34,38 +34,38 @@ impl Database {
         self.traverser(&mut callbacks).traverse(tree)
     }
 
-    pub fn unique_blobs(
+    pub fn unique_shadows(
         &self,
         tree: Oid,
-        callback: impl FnMut(&BulkPath, &BlobShadow) -> Result<()>,
+        callback: impl FnMut(&ShadowPath, &Shadow) -> Result<()>,
     ) -> Result<()> {
-        struct UniqueBlobsCallbacks<T> {
+        struct UniqueShadowsCallbacks<T> {
             callback: T,
         }
-        impl<T: FnMut(&BulkPath, &BlobShadow) -> Result<()>> TraversalCallbacks
-            for UniqueBlobsCallbacks<T>
+        impl<T: FnMut(&ShadowPath, &Shadow) -> Result<()>> TraversalCallbacks
+            for UniqueShadowsCallbacks<T>
         {
-            fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
-                let st_blob = blob.read_blob()?;
-                (self.callback)(blob.path, &st_blob)?;
+            fn on_shadow(&mut self, visit: &Visit<VisitShadow>) -> Result<()> {
+                let shadow = visit.read_shadow()?;
+                (self.callback)(visit.path, &shadow)?;
                 Ok(())
             }
         }
-        let mut callbacks = OnUnique::new(UniqueBlobsCallbacks { callback });
+        let mut callbacks = OnUnique::new(UniqueShadowsCallbacks { callback });
         self.traverser(&mut callbacks).traverse(tree)
     }
 }
 
 pub trait TraversalCallbacks {
-    fn on_blob(&mut self, _blob: &Visit<VisitBlob>) -> Result<()> {
+    fn on_shadow(&mut self, _visit: &Visit<VisitShadow>) -> Result<()> {
         Ok(())
     }
 
-    fn on_link(&mut self, _link: &Visit<VisitLink>) -> Result<()> {
+    fn on_link(&mut self, _visit: &Visit<VisitLink>) -> Result<()> {
         Ok(())
     }
 
-    fn on_tree(&mut self, _tree: &Visit<VisitTree>) -> Result<VisitTreeDecision> {
+    fn on_tree(&mut self, _visit: &Visit<VisitTree>) -> Result<VisitTreeDecision> {
         Ok(VisitTreeDecision::Descend)
     }
 }
@@ -85,25 +85,25 @@ impl<T> OnUnique<T> {
 }
 
 impl<T: TraversalCallbacks> TraversalCallbacks for OnUnique<T> {
-    fn on_blob(&mut self, blob: &Visit<VisitBlob>) -> Result<()> {
-        if self.seen.insert(blob.oid()) {
-            self.callbacks.on_blob(blob)
+    fn on_shadow(&mut self, visit: &Visit<VisitShadow>) -> Result<()> {
+        if self.seen.insert(visit.oid()) {
+            self.callbacks.on_shadow(visit)
         } else {
             Ok(())
         }
     }
 
-    fn on_link(&mut self, link: &Visit<VisitLink>) -> Result<()> {
-        if self.seen.insert(link.oid()) {
-            self.callbacks.on_link(link)
+    fn on_link(&mut self, visit: &Visit<VisitLink>) -> Result<()> {
+        if self.seen.insert(visit.oid()) {
+            self.callbacks.on_link(visit)
         } else {
             Ok(())
         }
     }
 
-    fn on_tree(&mut self, tree: &Visit<VisitTree>) -> Result<VisitTreeDecision> {
-        if self.seen.insert(tree.oid()) {
-            self.callbacks.on_tree(tree)
+    fn on_tree(&mut self, visit: &Visit<VisitTree>) -> Result<VisitTreeDecision> {
+        if self.seen.insert(visit.oid()) {
+            self.callbacks.on_tree(visit)
         } else {
             Ok(VisitTreeDecision::Skip)
         }
@@ -112,12 +112,12 @@ impl<T: TraversalCallbacks> TraversalCallbacks for OnUnique<T> {
 
 pub struct Visit<'a, T> {
     repository: &'a Repository,
-    path: &'a BulkPath,
+    path: &'a ShadowPath,
     oid: Oid,
     extra: T,
 }
 
-pub struct VisitBlob {
+pub struct VisitShadow {
     executable: bool,
 }
 
@@ -134,19 +134,19 @@ impl<'a, T> Visit<'a, T> {
         self.oid
     }
 
-    pub fn path(&self) -> &BulkPath {
+    pub fn path(&self) -> &ShadowPath {
         self.path
     }
 }
 
-impl<'a> Visit<'a, VisitBlob> {
+impl<'a> Visit<'a, VisitShadow> {
     pub fn executable(&self) -> bool {
         self.extra.executable
     }
 
-    pub fn read_blob(&self) -> Result<BlobShadow> {
+    pub fn read_shadow(&self) -> Result<Shadow> {
         let blob = self.repository.find_blob(self.oid)?;
-        Ok(BlobShadow::from_bytes(blob.content())?)
+        Ok(Shadow::from_bytes(blob.content())?)
     }
 }
 
@@ -176,10 +176,10 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
     }
 
     pub fn traverse(&mut self, tree: Oid) -> Result<()> {
-        self.traverse_from(&mut BulkPath::new(), tree)
+        self.traverse_from(&mut ShadowPath::new(), tree)
     }
 
-    pub fn traverse_from(&mut self, path: &mut BulkPath, tree: Oid) -> Result<()> {
+    pub fn traverse_from(&mut self, path: &mut ShadowPath, tree: Oid) -> Result<()> {
         if let VisitTreeDecision::Skip = self.callbacks.on_tree(&Visit {
             repository: self.repository,
             path: &path,
@@ -193,7 +193,7 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
 
         let mut first = true;
         for entry in tree.iter() {
-            let name = BulkTreeEntryName::decode(entry.name().unwrap())?;
+            let name = ShadowTreeEntryName::decode(entry.name().unwrap())?;
             let mode = entry.filemode();
             let kind = entry.kind().unwrap();
             let oid = entry.id();
@@ -226,11 +226,11 @@ impl<'a, T: TraversalCallbacks> Traverser<'a, T> {
                         } else {
                             bail!("")
                         };
-                        self.callbacks.on_blob(&Visit {
+                        self.callbacks.on_shadow(&Visit {
                             repository: self.repository,
                             path: &path,
                             oid,
-                            extra: VisitBlob { executable },
+                            extra: VisitShadow { executable },
                         })?;
                     }
                 }

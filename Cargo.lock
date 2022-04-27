@@ -59,27 +59,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bulk"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "fallible-iterator",
- "fuser",
- "git2",
- "hex",
- "lazy_static",
- "libc",
- "log",
- "rand",
- "regex",
- "sha2",
- "termcolor",
- "thiserror",
-]
-
-[[package]]
 name = "byteorder"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -467,6 +446,27 @@ dependencies = [
  "cpufeatures",
  "digest",
  "opaque-debug",
+]
+
+[[package]]
+name = "shade"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+ "fallible-iterator",
+ "fuser",
+ "git2",
+ "hex",
+ "lazy_static",
+ "libc",
+ "log",
+ "rand",
+ "regex",
+ "sha2",
+ "termcolor",
+ "thiserror",
 ]
 
 [[package]]

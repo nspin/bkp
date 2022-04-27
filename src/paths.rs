@@ -4,30 +4,30 @@ use std::str::{self, FromStr};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct BulkPathComponent(String); // invariants: matches [^/\0]+ and not in {".", ".."}
+pub struct ShadowPathComponent(String); // invariants: matches [^/\0]+ and not in {".", ".."}
 
-impl BulkPathComponent {
+impl ShadowPathComponent {
     const DISALLOWED_CHARS: &'static [char] = &['/', '\0'];
 
     pub fn encode(&self) -> String {
-        BulkTreeEntryName::encode_child(self)
+        ShadowTreeEntryName::encode_child(self)
     }
 }
 
-impl AsRef<str> for BulkPathComponent {
+impl AsRef<str> for ShadowPathComponent {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl fmt::Display for BulkPathComponent {
+impl fmt::Display for ShadowPathComponent {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}", self.0)
     }
 }
 
-impl FromStr for BulkPathComponent {
-    type Err = BulkPathError;
+impl FromStr for ShadowPathComponent {
+    type Err = ShadowPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -40,29 +40,29 @@ impl FromStr for BulkPathComponent {
 }
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct BulkPath(Vec<BulkPathComponent>);
+pub struct ShadowPath(Vec<ShadowPathComponent>);
 
-impl BulkPath {
+impl ShadowPath {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 
-    pub fn components(&self) -> &[BulkPathComponent] {
+    pub fn components(&self) -> &[ShadowPathComponent] {
         &self.0
     }
 
-    pub fn push(&mut self, component: BulkPathComponent) {
+    pub fn push(&mut self, component: ShadowPathComponent) {
         self.0.push(component)
     }
 
-    pub fn pop(&mut self) -> Option<BulkPathComponent> {
+    pub fn pop(&mut self) -> Option<ShadowPathComponent> {
         self.0.pop()
     }
 
     pub fn encode(&self) -> String {
         self.components()
             .iter()
-            .map(BulkTreeEntryName::encode_child)
+            .map(ShadowTreeEntryName::encode_child)
             .intersperse("/".to_owned())
             .collect()
     }
@@ -70,14 +70,14 @@ impl BulkPath {
     pub fn encode_marker(&self) -> String {
         self.components()
             .iter()
-            .map(BulkTreeEntryName::encode_child)
-            .chain([BulkTreeEntryName::encode_marker()])
+            .map(ShadowTreeEntryName::encode_child)
+            .chain([ShadowTreeEntryName::encode_marker()])
             .intersperse("/".to_owned())
             .collect()
     }
 }
 
-impl fmt::Display for BulkPath {
+impl fmt::Display for ShadowPath {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for chunk in self.components().iter().map(AsRef::as_ref).intersperse("/") {
             write!(fmt, "{}", chunk)?;
@@ -86,27 +86,27 @@ impl fmt::Display for BulkPath {
     }
 }
 
-impl FromStr for BulkPath {
-    type Err = BulkPathError;
+impl FromStr for ShadowPath {
+    type Err = ShadowPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(if s.is_empty() {
             vec![]
         } else {
             s.split('/')
-                .map(BulkPathComponent::from_str)
-                .collect::<Result<Vec<BulkPathComponent>, Self::Err>>()?
+                .map(ShadowPathComponent::from_str)
+                .collect::<Result<Vec<ShadowPathComponent>, Self::Err>>()?
         }))
     }
 }
 
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub enum BulkTreeEntryName {
+pub enum ShadowTreeEntryName {
     Marker,
-    Child(BulkPathComponent),
+    Child(ShadowPathComponent),
 }
 
-impl BulkTreeEntryName {
+impl ShadowTreeEntryName {
     const MARKER: &'static str = "0";
     const CHILD_PREFIX: &'static str = "0_";
 
@@ -117,7 +117,7 @@ impl BulkTreeEntryName {
         }
     }
 
-    pub fn child(&self) -> Option<&BulkPathComponent> {
+    pub fn child(&self) -> Option<&ShadowPathComponent> {
         match self {
             Self::Child(child) => Some(child),
             _ => None,
@@ -132,16 +132,16 @@ impl BulkTreeEntryName {
         format!("{}", Self::MARKER)
     }
 
-    pub fn encode_child(child: &BulkPathComponent) -> String {
+    pub fn encode_child(child: &ShadowPathComponent) -> String {
         format!("{}{}", Self::CHILD_PREFIX, child)
     }
 
-    pub fn decode(s: &str) -> Result<Self, BulkEncodedPathError> {
+    pub fn decode(s: &str) -> Result<Self, ShadowEncodedPathError> {
         Self::from_str(s)
     }
 }
 
-impl fmt::Display for BulkTreeEntryName {
+impl fmt::Display for ShadowTreeEntryName {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(
             fmt,
@@ -158,8 +158,8 @@ impl fmt::Display for BulkTreeEntryName {
     }
 }
 
-impl FromStr for BulkTreeEntryName {
-    type Err = BulkEncodedPathError;
+impl FromStr for ShadowTreeEntryName {
+    type Err = ShadowEncodedPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(if s == Self::MARKER {
@@ -167,14 +167,14 @@ impl FromStr for BulkTreeEntryName {
         } else {
             match s.strip_prefix(Self::CHILD_PREFIX) {
                 Some(child) => Self::Child(child.parse()?),
-                None => return Err(BulkEncodedPathError::MissingPrefix),
+                None => return Err(ShadowEncodedPathError::MissingPrefix),
             }
         })
     }
 }
 
 #[derive(Error, Debug)]
-pub enum BulkPathError {
+pub enum ShadowPathError {
     #[error("disallowed component")]
     DisallowedComponent,
     #[error("disallowed character")]
@@ -184,14 +184,14 @@ pub enum BulkPathError {
 }
 
 #[derive(Error, Debug)]
-pub enum BulkEncodedPathError {
+pub enum ShadowEncodedPathError {
     #[error("missing prefix")]
     MissingPrefix,
     #[error("malformed component")]
-    BulkPathError(
+    ShadowPathError(
         #[source]
         #[from]
-        BulkPathError,
+        ShadowPathError,
     ),
 }
 
@@ -212,42 +212,42 @@ mod tests {
 
     #[test]
     fn component() {
-        ensure_err::<BulkPathComponent>(".");
-        ensure_err::<BulkPathComponent>("..");
-        ensure_err::<BulkPathComponent>("");
-        ensure_err::<BulkPathComponent>("x/y");
-        ensure_err::<BulkPathComponent>("x\0y");
-        ensure_inverse::<BulkPathComponent>("abc");
+        ensure_err::<ShadowPathComponent>(".");
+        ensure_err::<ShadowPathComponent>("..");
+        ensure_err::<ShadowPathComponent>("");
+        ensure_err::<ShadowPathComponent>("x/y");
+        ensure_err::<ShadowPathComponent>("x\0y");
+        ensure_inverse::<ShadowPathComponent>("abc");
     }
 
     #[test]
     fn path() {
-        ensure_err::<BulkPath>("/x/y");
-        ensure_err::<BulkPath>("x/y/");
-        ensure_err::<BulkPath>("x//y"); // TODO support
-        ensure_inverse::<BulkPath>("");
-        ensure_inverse::<BulkPath>("abc");
-        ensure_inverse::<BulkPath>("x/y");
+        ensure_err::<ShadowPath>("/x/y");
+        ensure_err::<ShadowPath>("x/y/");
+        ensure_err::<ShadowPath>("x//y"); // TODO support
+        ensure_inverse::<ShadowPath>("");
+        ensure_inverse::<ShadowPath>("abc");
+        ensure_inverse::<ShadowPath>("x/y");
     }
 
     #[test]
     fn encoding() {
-        assert_eq!(BulkPath::from_str("x/y").unwrap().encode(), "0_x/0_y");
+        assert_eq!(ShadowPath::from_str("x/y").unwrap().encode(), "0_x/0_y");
         assert_eq!(
-            BulkPath::from_str("x/y").unwrap().encode_marker(),
+            ShadowPath::from_str("x/y").unwrap().encode_marker(),
             "0_x/0_y/0"
         );
     }
 
     #[test]
     fn decode() {
-        assert!(BulkTreeEntryName::decode("xy").is_err());
+        assert!(ShadowTreeEntryName::decode("xy").is_err());
         matches!(
-            BulkTreeEntryName::decode("0").unwrap(),
-            BulkTreeEntryName::Marker
+            ShadowTreeEntryName::decode("0").unwrap(),
+            ShadowTreeEntryName::Marker
         );
         assert_eq!(
-            BulkTreeEntryName::decode("0_x")
+            ShadowTreeEntryName::decode("0_x")
                 .unwrap()
                 .child()
                 .unwrap()
