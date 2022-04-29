@@ -78,13 +78,13 @@ impl Database {
 
     pub fn store_snapshot(
         &self,
-        blob_store: &impl Substance,
+        substance: &impl Substance,
         tree: Oid,
         subject: &Path,
     ) -> Result<()> {
-        self.unique_shadows(tree, |path, blob| {
+        self.unique_shadows(tree, |path, shadow| {
             let src = subject.join(path.to_string());
-            blob_store.store(blob.content_hash(), &src)?;
+            substance.store(shadow.content_hash(), &src)?;
             Ok(())
         })?;
         Ok(())

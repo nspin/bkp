@@ -25,9 +25,9 @@ impl Args {
         Ok(Database::new(Repository::open_bare(git_dir)?))
     }
 
-    fn blob_storage(&self) -> Result<FilesystemSubstance> {
-        let blob_store = self.blob_store.as_ref().unwrap();
-        Ok(FilesystemSubstance::new(blob_store))
+    fn substance(&self) -> Result<FilesystemSubstance> {
+        let substance_dir = self.substance_dir.as_ref().unwrap();
+        Ok(FilesystemSubstance::new(substance_dir))
     }
 
     fn apply_verbosity(&self) {
@@ -52,7 +52,7 @@ impl Args {
                 snapshot_dir,
             } => {
                 let db = self.database()?;
-                let blob_store = self.blob_storage()?;
+                let substance = self.substance()?;
                 let snapshot = Snapshot::new(&snapshot_dir);
                 log::info!(
                     "taking snapshot of {} to {}",
@@ -64,7 +64,7 @@ impl Args {
                 let (mode, tree) = db.plant_snapshot(&snapshot)?;
                 log::info!("planted: {:06o},{}", u32::from(mode), tree);
                 log::info!("storing snapshot");
-                db.store_snapshot(&blob_store, tree, &subject)?;
+                db.store_snapshot(&substance, tree, &subject)?;
                 // log::info!("adding snapshot to index at {}", relative_path);
                 // db.add_to_index(mode, tree, relative_path)?;
                 let parent = db.repository().head()?.peel_to_commit()?;
@@ -85,9 +85,9 @@ impl Args {
             }
             Command::Mount { mountpoint, tree } => {
                 let db = self.database()?;
-                let blob_store = self.blob_storage()?;
+                let substance = self.substance()?;
                 let tree = db.resolve_treeish(&tree)?;
-                db.mount(tree, &mountpoint, blob_store)?;
+                db.mount(tree, &mountpoint, substance)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;
@@ -120,15 +120,15 @@ impl Args {
             }
             Command::CheckBlobs { tree, deep } => {
                 let db = self.database()?;
-                let blob_store = self.blob_storage()?;
+                let substance = self.substance()?;
                 let tree = db.resolve_treeish(&tree)?;
                 db.unique_shadows(tree, |path, blob| {
                     // TODO check size
-                    if !blob_store.have_blob(blob.content_hash()) {
+                    if !substance.have_blob(blob.content_hash()) {
                         println!("missing blob: {} {}", blob.content_hash(), path);
                     }
                     if *deep {
-                        if !blob_store.check_blob(blob.content_hash()).is_ok() {
+                        if !substance.check_blob(blob.content_hash()).is_ok() {
                             println!("invalid blob: {} {}", blob.content_hash(), path);
                         }
                     }
@@ -151,9 +151,9 @@ impl Args {
             }
             Command::StoreSnapshot { tree, subject } => {
                 let db = self.database()?;
-                let blob_store = self.blob_storage()?;
+                let substance = self.substance()?;
                 let tree = db.resolve_treeish(&tree)?;
-                db.store_snapshot(&blob_store, tree, &subject)?;
+                db.store_snapshot(&substance, tree, &subject)?;
             }
             Command::Append {
                 big_tree,

@@ -19,14 +19,14 @@ use log::error;
 
 use crate::{Shadow, ShadowPathComponent, ShadowTreeEntryName, Database, Substance};
 
-const FS_NAME: &str = "st";
+const FS_NAME: &str = "shade";
 
 impl Database {
     pub fn mount(
         &self,
         tree: Oid,
         mountpoint: impl AsRef<Path>,
-        blob_store: impl Substance,
+        substance: impl Substance,
     ) -> Result<()> {
         let options = &[
             MountOption::RO,
@@ -40,7 +40,7 @@ impl Database {
             // MountOption::AutoUnmount,
             MountOption::CUSTOM("auto_unmount".to_string()),
         ];
-        let fs = DatabaseFilesystem::new(self.repository(), tree, blob_store);
+        let fs = DatabaseFilesystem::new(self.repository(), tree, substance);
         fuser::mount2(fs, mountpoint, options)?;
         Ok(())
     }
@@ -77,7 +77,7 @@ pub struct DatabaseFilesystem<'a, T> {
     family_tree: BTreeMap<(Inode, usize), Inode>,
     next_inode: Inode,
     file_handles: BTreeMap<Inode, SharedFile>,
-    blob_store: T,
+    substance: T,
 }
 
 struct SharedFile {
@@ -104,7 +104,7 @@ impl SharedFile {
 }
 
 impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
-    pub fn new(repository: &'a Repository, tree: Oid, blob_store: T) -> Self {
+    pub fn new(repository: &'a Repository, tree: Oid, substance: T) -> Self {
         Self {
             repository,
             inodes: BTreeMap::from_iter([(
@@ -117,7 +117,7 @@ impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
             family_tree: BTreeMap::new(),
             next_inode: ROOT_INODE + 1,
             file_handles: BTreeMap::new(),
-            blob_store,
+            substance,
         }
     }
 
@@ -159,8 +159,8 @@ impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
                 let kind = FileType::RegularFile;
                 let perm = 0o444 | (if *executable { 0o000 } else { 0o111 });
                 let blob = self.repository.find_blob(oid.clone())?;
-                let blob = Shadow::from_bytes(blob.content())?;
-                let size = blob.size().unwrap_or(0);
+                let shadow = Shadow::from_bytes(blob.content())?;
+                let size = shadow.size().unwrap_or(0);
                 (kind, perm, size)
             }
             InodeEntry::Link { oid } => {
@@ -206,8 +206,8 @@ impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
             _ => bail!("not a file"),
         };
         let blob = self.repository.find_blob(oid.clone())?;
-        let blob = Shadow::from_bytes(blob.content())?;
-        let blob_path = self.blob_store.blob_path(&blob.content_hash());
+        let shadow = Shadow::from_bytes(blob.content())?;
+        let blob_path = self.substance.blob_path(&shadow.content_hash());
         let file = OpenOptions::new().read(true).open(blob_path)?;
         self.file_handles.insert(ino, SharedFile::new(file));
         Ok(())

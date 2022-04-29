@@ -9,12 +9,12 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use crate::ShadowPath;
 
 const ENV_GIT_DIR: &str = "GIT_DIR";
-const ENV_BLOB_STORE: &str = "BULK_BLOB_STORE";
+const ENV_SUBSTANCE_DIR: &str = "SUBSTANCE_DIR";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Args {
     pub git_dir: Option<PathBuf>,
-    pub blob_store: Option<PathBuf>,
+    pub substance_dir: Option<PathBuf>,
     pub read_only: bool,
     pub verbosity: u64,
     pub command: Command,
@@ -88,9 +88,9 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("blob-store")
-                .long("blob-store")
-                .value_name("BLOB_STORE")
+            Arg::with_name("substance-dir")
+                .long("substance-dir")
+                .value_name("SUBSTANCE_DIR")
                 .takes_value(true),
         )
         .arg(
@@ -214,10 +214,10 @@ impl Args {
             .value_of("git-dir")
             .map(PathBuf::from)
             .or_else(|| path_from_env(ENV_GIT_DIR));
-        let blob_store = matches
-            .value_of("blob-store")
+        let substance_dir = matches
+            .value_of("substance-dir")
             .map(PathBuf::from)
-            .or_else(|| path_from_env(ENV_BLOB_STORE));
+            .or_else(|| path_from_env(ENV_SUBSTANCE_DIR));
         let read_only = matches.is_present("read-only");
         let verbosity = matches.occurrences_of("v");
 
@@ -229,9 +229,9 @@ impl Args {
             }
         };
 
-        let ensure_blob_store = || {
-            if blob_store.is_none() {
-                Err(anyhow!("missing '--blob-store'"))
+        let ensure_substance_dir = || {
+            if substance_dir.is_none() {
+                Err(anyhow!("missing '--substance-dir'"))
             } else {
                 Ok(())
             }
@@ -239,7 +239,7 @@ impl Args {
 
         let command = if let Some(submatches) = matches.subcommand_matches("snapshot") {
             ensure_git_dir()?;
-            ensure_blob_store()?;
+            ensure_substance_dir()?;
             Command::Snapshot {
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
                 relative_path: submatches.value_of("RELATIVE_PATH").unwrap().parse()?,
@@ -249,7 +249,7 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("mount") {
             ensure_git_dir()?;
-            ensure_blob_store()?;
+            ensure_substance_dir()?;
             Command::Mount {
                 mountpoint: submatches.value_of("MOUNTPOINT").unwrap().parse()?,
                 tree: submatches.value_of("TREE").unwrap().to_string(),
@@ -279,7 +279,7 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("check-blobs") {
             ensure_git_dir()?;
-            ensure_blob_store()?;
+            ensure_substance_dir()?;
             Command::CheckBlobs {
                 tree: submatches.value_of("TREE").unwrap().to_string(),
                 deep: submatches.is_present("deep"),
@@ -300,7 +300,7 @@ impl Args {
             }
         } else if let Some(submatches) = matches.subcommand_matches("store-snapshot") {
             ensure_git_dir()?;
-            ensure_blob_store()?;
+            ensure_substance_dir()?;
             Command::StoreSnapshot {
                 tree: submatches.value_of("TREE").unwrap().parse()?,
                 subject: submatches.value_of("SUBJECT").unwrap().parse()?,
@@ -333,7 +333,7 @@ impl Args {
 
         Ok(Args {
             git_dir,
-            blob_store,
+            substance_dir,
             read_only,
             verbosity,
             command,
@@ -355,7 +355,7 @@ mod tests {
             "",
             "--git-dir",
             "x/y",
-            "--blob-store",
+            "--substance-dir",
             "y/x",
             "mount",
             "a/b/c",
