@@ -26,7 +26,7 @@ pub use crate::{
         Snapshot, SnapshotEntries, SnapshotEntry, SnapshotEntryValue,
     },
     shallow_diff::{
-        ShallowDiff, ShallowDiffSide,
+        ShallowDifference, ShallowDifferenceSide,
         shallow_diff,
     },
     database::{

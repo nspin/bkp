@@ -3,7 +3,7 @@ use std::process::Command;
 use anyhow::{Error, Result};
 use git2::{Commit, Oid, Repository, Signature, Tree};
 
-use crate::{shallow_diff, ShallowDiff};
+use crate::{shallow_diff, ShallowDifference};
 
 mod append;
 mod remove;
@@ -59,7 +59,7 @@ impl Database {
         &self,
         tree_a: Oid,
         tree_b: Oid,
-        callback: impl for<'b> FnMut(&ShallowDiff<'b>) -> Result<(), Error>,
+        callback: impl for<'b> FnMut(&ShallowDifference<'b>) -> Result<(), Error>,
     ) -> Result<()> {
         shallow_diff(&self.repository, tree_a, tree_b, callback).map_err(Error::from)
     }
