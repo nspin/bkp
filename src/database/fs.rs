@@ -19,7 +19,7 @@ use log::error;
 
 use crate::{Shadow, ShadowPathComponent, ShadowTreeEntryName, Database, Substance};
 
-const FS_NAME: &str = "shade";
+const FS_NAME: &str = "keep";
 
 impl Database {
     pub fn mount(
