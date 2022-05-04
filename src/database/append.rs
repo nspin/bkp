@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use git2::{FileMode, Oid};
 
-use crate::{ShadowPath, ShadowPathComponent, ShadowTreeEntryName, Database};
+use crate::{Database, ShadowPath, ShadowPathComponent, ShadowTreeEntryName};
 
 impl Database {
     pub fn append(

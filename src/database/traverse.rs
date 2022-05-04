@@ -4,7 +4,7 @@ use std::str;
 use anyhow::{bail, ensure, Result};
 use git2::{FileMode, ObjectType, Oid, Repository};
 
-use crate::{Shadow, ShadowPath, ShadowTreeEntryName, Database};
+use crate::{Database, Shadow, ShadowPath, ShadowTreeEntryName};
 
 impl Database {
     pub fn traverser<'a, T: TraversalCallbacks>(

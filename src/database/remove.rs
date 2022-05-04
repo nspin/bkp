@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use git2::Oid;
 
-use crate::{ShadowPath, ShadowPathComponent, Database};
+use crate::{Database, ShadowPath, ShadowPathComponent};
 
 impl Database {
     pub fn remove(

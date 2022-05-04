@@ -79,13 +79,8 @@ pub struct SnapshotEntry {
 
 #[derive(Clone, Debug)]
 pub enum SnapshotEntryValue {
-    File {
-        shadow: Shadow,
-        executable: bool,
-    },
-    Link {
-        target: String,
-    },
+    File { shadow: Shadow, executable: bool },
+    Link { target: String },
     Tree,
 }
 

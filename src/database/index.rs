@@ -1,7 +1,7 @@
 use anyhow::Result;
 use git2::{FileMode, Oid};
 
-use crate::{ShadowPath, Database};
+use crate::{Database, ShadowPath};
 
 impl Database {
     fn add_to_index_unchecked(
@@ -26,7 +26,12 @@ impl Database {
         ])
     }
 
-    pub fn add_to_index(&self, mode: FileMode, tree: Oid, relative_path: &ShadowPath) -> Result<()> {
+    pub fn add_to_index(
+        &self,
+        mode: FileMode,
+        tree: Oid,
+        relative_path: &ShadowPath,
+    ) -> Result<()> {
         let empty_blob_oid = self.empty_blob_oid()?;
         let mut ancestor = ShadowPath::new();
         for component in relative_path.components() {

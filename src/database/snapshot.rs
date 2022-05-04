@@ -6,8 +6,8 @@ use fallible_iterator::{FallibleIterator, Peekable};
 use git2::{FileMode, Oid};
 
 use crate::{
-    ShadowTreeEntryName, Database, Substance, Snapshot, SnapshotEntries, SnapshotEntry,
-    SnapshotEntryValue,
+    Database, ShadowTreeEntryName, Snapshot, SnapshotEntries, SnapshotEntry, SnapshotEntryValue,
+    Substance,
 };
 
 impl Database {
@@ -27,10 +27,7 @@ impl Database {
         empty_blob_oid: Oid,
     ) -> Result<(FileMode, Oid)> {
         Ok(match &entry.value {
-            SnapshotEntryValue::File {
-                shadow,
-                executable,
-            } => {
+            SnapshotEntryValue::File { shadow, executable } => {
                 let mode = if *executable {
                     FileMode::BlobExecutable
                 } else {

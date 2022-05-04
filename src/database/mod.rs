@@ -13,7 +13,7 @@ mod index;
 mod fs;
 
 pub use traverse::{
-    TraversalCallbacks, Traverser, Visit, VisitShadow, VisitLink, VisitTree, VisitTreeDecision,
+    TraversalCallbacks, Traverser, Visit, VisitLink, VisitShadow, VisitTree, VisitTreeDecision,
 };
 
 pub struct Database {

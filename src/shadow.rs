@@ -107,8 +107,7 @@ impl FromStr for ContentSha256 {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut digest = [0; Self::SHA256_DIGEST_SIZE];
-        hex::decode_to_slice(s, &mut digest)
-            .map_err(ShadowError::MalformedShadowContentHashHex)?;
+        hex::decode_to_slice(s, &mut digest).map_err(ShadowError::MalformedShadowContentHashHex)?;
         Ok(Self::new(digest))
     }
 }

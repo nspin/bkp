@@ -17,7 +17,7 @@ use git2::{FileMode, ObjectType, Oid, Repository, TreeEntry};
 use libc::{EINVAL, ENOENT};
 use log::error;
 
-use crate::{Shadow, ShadowPathComponent, ShadowTreeEntryName, Database, Substance};
+use crate::{Database, Shadow, ShadowPathComponent, ShadowTreeEntryName, Substance};
 
 const FS_NAME: &str = "keep";
 
