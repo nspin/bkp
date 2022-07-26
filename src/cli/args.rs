@@ -32,6 +32,8 @@ pub enum Command {
     Mount {
         mountpoint: PathBuf,
         tree: String,
+        uid: u32,
+        gid: u32,
     },
     Diff {
         tree_a: String,
@@ -131,7 +133,21 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("MOUNTPOINT").required(true).index(1))
-                .arg(Arg::with_name("TREE").default_value("HEAD").index(2)),
+                .arg(Arg::with_name("TREE").default_value("HEAD").index(2))
+                .arg(Arg::with_name("uid")
+                    .long("--uid")
+                    .short("-u")
+                    .value_name("UID")
+                    .default_value("0")
+                    .takes_value(true)
+                )
+                .arg(Arg::with_name("gid")
+                    .long("--gid")
+                    .short("-g")
+                    .value_name("GID")
+                    .default_value("0")
+                    .takes_value(true)
+                ),
         )
         .subcommand(
             SubCommand::with_name("diff")
@@ -253,6 +269,8 @@ impl Args {
             Command::Mount {
                 mountpoint: submatches.value_of("MOUNTPOINT").unwrap().parse()?,
                 tree: submatches.value_of("TREE").unwrap().to_string(),
+                uid: submatches.value_of("uid").unwrap().parse()?,
+                gid: submatches.value_of("gid").unwrap().parse()?,
             }
         } else if let Some(submatches) = matches.subcommand_matches("diff") {
             ensure_git_dir()?;

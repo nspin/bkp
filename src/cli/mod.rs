@@ -80,11 +80,11 @@ impl Args {
                     snapshot.remove()?;
                 }
             }
-            Command::Mount { mountpoint, tree } => {
+            Command::Mount { mountpoint, tree, uid, gid } => {
                 let db = self.database()?;
                 let substance = self.substance()?;
                 let tree = db.resolve_treeish(&tree)?;
-                db.mount(tree, &mountpoint, substance)?;
+                db.mount(tree, &mountpoint, substance, *uid, *gid)?;
             }
             Command::Diff { tree_a, tree_b } => {
                 let db = self.database()?;

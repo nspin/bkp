@@ -27,6 +27,8 @@ impl Database {
         tree: Oid,
         mountpoint: impl AsRef<Path>,
         substance: impl Substance,
+        uid: u32,
+        gid: u32,
     ) -> Result<()> {
         let options = &[
             MountOption::RO,
@@ -40,7 +42,7 @@ impl Database {
             // MountOption::AutoUnmount,
             MountOption::CUSTOM("auto_unmount".to_string()),
         ];
-        let fs = DatabaseFilesystem::new(self.repository(), tree, substance);
+        let fs = DatabaseFilesystem::new(self.repository(), tree, substance, uid, gid);
         fuser::mount2(fs, mountpoint, options)?;
         Ok(())
     }
@@ -78,6 +80,8 @@ pub struct DatabaseFilesystem<'a, T> {
     next_inode: Inode,
     file_handles: BTreeMap<Inode, SharedFile>,
     substance: T,
+    uid: u32,
+    gid: u32,
 }
 
 struct SharedFile {
@@ -104,7 +108,7 @@ impl SharedFile {
 }
 
 impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
-    pub fn new(repository: &'a Repository, tree: Oid, substance: T) -> Self {
+    pub fn new(repository: &'a Repository, tree: Oid, substance: T, uid: u32, gid: u32) -> Self {
         Self {
             repository,
             inodes: BTreeMap::from_iter([(
@@ -118,6 +122,8 @@ impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
             next_inode: ROOT_INODE + 1,
             file_handles: BTreeMap::new(),
             substance,
+            uid,
+            gid,
         }
     }
 
@@ -188,8 +194,8 @@ impl<'a, T: Substance> DatabaseFilesystem<'a, T> {
             kind,
             perm,
             nlink: 0,
-            uid: 0,
-            gid: 0,
+            uid: self.uid,
+            gid: self.gid,
             rdev: 0,
             blksize: 0,
             flags: 0,
