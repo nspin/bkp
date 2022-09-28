@@ -117,8 +117,7 @@ impl Substance for FilesystemSubstance {
             fs::create_dir(blob_parent)?;
         }
 
-        fs::hard_link(&partial_path, &blob_path)?;
-        fs::remove_file(&partial_path)?;
+        fs::rename(&partial_path, &blob_path)?;
         Ok(())
     }
 }
